@@ -1,7 +1,7 @@
 # Owlmetry Android demo
 
-A Jetpack Compose app that exercises the Owlmetry Android SDK (`owlmetry-android`)
-and its Compose UI (`owlmetry-android-compose`) end to end. It mirrors the iOS SDK
+A Jetpack Compose app that exercises the Owlmetry Android SDK (`pulse-android`)
+and its Compose UI (`pulse-android-compose`) end to end. It mirrors the iOS SDK
 demo (`owlmetry-swift/Examples/Demo`) section for section:
 
 - **Run Full Demo** — fires a scripted sequence (info event, metric, an
@@ -33,7 +33,7 @@ tracking.
 
 | Setting | Value |
 |---|---|
-| `applicationId` | `com.owlmetry.android.demo` |
+| `applicationId` | `org.pubky.pulse.android.demo` |
 | SDK endpoint | `http://10.0.2.2:4000` (emulator alias for the host's `localhost:4000`) |
 | API key | the seeded demo client key (`owl_client_demo_…`) |
 | Backend demo | `http://10.0.2.2:4007` (the Node demo server) |
@@ -64,7 +64,7 @@ npm install && npm start   # HTTP demo server on :4007
 ```
 
 Then build and install the Android demo on a running emulator. From the
-`owlmetry-android/` repo root:
+`pubky-pulse-android/` repo root:
 
 ```bash
 JAVA_HOME=/path/to/jdk-21 ./gradlew :examples:demo:installDebug
