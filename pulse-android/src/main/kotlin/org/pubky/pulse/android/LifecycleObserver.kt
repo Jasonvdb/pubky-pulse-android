@@ -25,10 +25,12 @@ import kotlinx.coroutines.launch
  *    after the host's first real background→foreground transition is observed.
  *  - **ON_STOP** (background): emit `sdk:app_backgrounded` and run [flushAll]
  *    (when `flushOnBackground` is on) so the in-memory buffer reaches the
- *    server; on the way out also [persistBufferToDisk] so anything appended
- *    during the flush survives process death. Best-effort: Android may kill the
- *    process at any time after `ON_STOP`, so the disk persist is the durable
- *    backstop — exactly Swift's watchOS strategy (no background-task grant).
+ *    server — one attempt per batch, since the process may not live long enough
+ *    for a retry ladder; on the way out also [persistBufferToDisk] so anything
+ *    appended during the flush survives process death. Best-effort: Android may
+ *    kill the process at any time after `ON_STOP`, so the disk persist is the
+ *    durable backstop — exactly Swift's watchOS strategy (no background-task
+ *    grant).
  *
  * The transport calls run on the SDK [scope]; the lifecycle callbacks
  * themselves arrive on the main thread (where [ProcessLifecycleOwner] posts).
@@ -74,7 +76,12 @@ internal class LifecycleObserver(
     override fun onStop(owner: LifecycleOwner) {
         Pulse.info("sdk:app_backgrounded")
         scope.launch {
-            transport.flushAll()
+            // One attempt per batch: the full retry ladder can sit in a 429/503
+            // `Retry-After` for up to a minute per attempt, and Android may kill
+            // the backgrounded process long before it returns — which would also
+            // mean never reaching the persist below. Anything undelivered goes
+            // straight to the offline queue instead.
+            transport.flushAll(maxAttemptsPerBatch = 1)
             // Durable backstop: anything appended during the flush (including the
             // sdk:app_backgrounded event above, still hopping the dedup filter →
             // transport) plus any batch still working through the retry ladder is

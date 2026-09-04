@@ -1,5 +1,6 @@
 package org.pubky.pulse.android
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,12 +85,13 @@ class EventTransportDeepTest {
         endpoint: String = "https://ingest.example.com",
         scope: CoroutineScope,
         ioDispatcher: CoroutineDispatcher,
+        queue: OfflineQueue = OfflineQueue(dir, scope),
     ) = EventTransport(
         endpoint = URL(endpoint),
         apiKey = "pulse_client_abc123",
         bundleId = "com.example.app",
         compressionEnabled = compression,
-        offlineQueue = OfflineQueue(dir, scope),
+        offlineQueue = queue,
         networkMonitor = reachability,
         scope = scope,
         httpClient = http,
@@ -434,6 +436,77 @@ class EventTransportDeepTest {
             listOf("mid-retry"),
             OfflineQueue(dir, txScope).drain().map { it.clientEventId },
         )
+    }
+
+    /**
+     * The handoff out of `buffer` and into the in-flight registry has to be one
+     * atomic step. A `persistBufferToDisk` that lands between the two — here the
+     * send is held at the hook, after the batch has left the buffer — used to
+     * find the batch in neither place and write nothing, so process death still
+     * lost it. It must be written, exactly once.
+     */
+    @Test
+    fun `a persist between the buffer and the send still writes the batch`() = runTest {
+        val http = FakeHttpClient()
+        val txScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = txScope,
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        // Hold the send open in the window between extraction and the POST.
+        val released = CompletableDeferred<Unit>()
+        tx.beforeSendHook = { released.await() }
+
+        tx.enqueue(event("handoff"))
+        txScope.launch { tx.flush() }
+        runCurrent()
+        assertEquals("the send is parked before its first request", 0, http.ingest().size)
+
+        // The app backgrounds exactly inside that window.
+        tx.persistBufferToDisk()
+        runCurrent()
+
+        released.complete(Unit)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the batch was persisted from the handoff window, once",
+            listOf("handoff"),
+            OfflineQueue(dir, txScope).drain().map { it.clientEventId },
+        )
+    }
+
+    /**
+     * The background (ON_STOP) flush has to be durable before it is patient: one
+     * attempt per batch, everything undelivered parked immediately. The full
+     * ladder would sit in this `Retry-After: 60` for a minute per attempt while
+     * Android is free to kill the process before the disk persist runs.
+     */
+    @Test
+    fun `a single-attempt flushAll parks a rate-limited batch without waiting`() = runTest {
+        val http = FakeHttpClient().apply {
+            default = HttpResponse(429, "slow down", mapOf("Retry-After" to "60"))
+        }
+        // Seed the offline queue rather than the buffer so all 25 events (two
+        // batches' worth) reach flushAll without an auto-flush racing it.
+        val queue = OfflineQueue(dir, backgroundScope)
+        queue.enqueue((0 until 25).map { event("e$it") })
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = backgroundScope,
+            ioDispatcher = StandardTestDispatcher(testScheduler),
+            queue = queue,
+        )
+        val startedAt = testScheduler.currentTime
+
+        tx.flushAll(maxAttemptsPerBatch = 1)
+
+        assertEquals("exactly one attempt per batch", 2, http.ingest().size)
+        assertEquals("no Retry-After wait before returning", startedAt, testScheduler.currentTime)
+        assertEquals("both batches parked back on the offline queue", 25, queue.count())
     }
 
     /** A second background persist during the same send must not duplicate it. */

@@ -36,8 +36,8 @@ import kotlin.math.pow
  * to 5 times with exponential backoff capped at 30 s (raised to a server-sent
  * `Retry-After`, itself capped at 60 s), and routing undelivered batches to the
  * [OfflineQueue]. This port mirrors all of that:
- *  - a [Mutex] serializes `buffer` mutation (the actor analog under the
- *    coroutines-only dependency rule),
+ *  - a single [Mutex] serializes `buffer` and in-flight-batch mutation (the
+ *    actor analog under the coroutines-only dependency rule),
  *  - a flush loop launched on [scope] (`while isActive { delay(5s); flush() }`)
  *    is the analog of Swift's flush `Task`,
  *  - HTTP runs on [HttpURLConnection] (the framework-only analog of `URLSession`)
@@ -53,7 +53,8 @@ import kotlin.math.pow
  * hold it for up to ~61 s. [inFlightBatches] keeps those batches reachable so
  * [persistBufferToDisk] can park them on the [OfflineQueue] before the process
  * dies — otherwise a batch that is mid-retry when Android kills the process is
- * simply lost.
+ * simply lost. Leaving `buffer` and entering [inFlightBatches] is one atomic
+ * step under [stateMutex], so a persist can never observe the batch in neither.
  */
 internal class EventTransport(
     endpoint: URL,
@@ -80,20 +81,26 @@ internal class EventTransport(
     // can be built per-call. The endpoint base is normalized once here.
     private val endpointBase: URL = endpoint
 
-    private val bufferMutex = Mutex()
+    // One mutex guards `buffer` AND the in-flight state below, because a batch
+    // has to leave `buffer` and enter [inFlightBatches] in a single critical
+    // section: with two mutexes a concurrent [persistBufferToDisk] can land in
+    // the gap, see the batch in neither place, write nothing, and lose it to
+    // process death. One lock makes that handoff atomic and removes any
+    // lock-ordering question along with it.
+    private val stateMutex = Mutex()
     private val buffer = ArrayList<LogEvent>()
     private var flushJob: Job? = null
 
     // In-flight ingest sends. `claimIdentity` waits for this to drain to zero
     // before POSTing the claim — mirrors Swift's `inFlightSendCount` +
-    // `sendDrainContinuations`. Guarded by [inFlightMutex].
-    private val inFlightMutex = Mutex()
+    // `sendDrainContinuations`. Guarded by [stateMutex].
     private var inFlightSendCount = 0
     private val sendDrainContinuations = ArrayList<Continuation<Unit>>()
 
-    // The batches currently inside [send], keyed by a monotonic id. Insertion
-    // order (a LinkedHashMap) is oldest-first, which is the order
-    // [persistBufferToDisk] parks them in. Guarded by [inFlightMutex].
+    // The batches that have left `buffer` but are not yet delivered or
+    // re-queued, keyed by a monotonic id. Insertion order (a LinkedHashMap) is
+    // oldest-first, which is the order [persistBufferToDisk] parks them in.
+    // Guarded by [stateMutex].
     private val inFlightBatches = LinkedHashMap<Long, InFlightBatch>()
     private var nextInFlightBatchId = 0L
 
@@ -101,6 +108,17 @@ internal class EventTransport(
     private class InFlightBatch(val events: List<LogEvent>) {
         var persisted = false
     }
+
+    /**
+     * A batch taken out of [buffer] and registered in [inFlightBatches] in the
+     * same [stateMutex] section, carried by its owner until [retire].
+     */
+    private class PendingBatch(val id: Long, val events: List<LogEvent>)
+
+    // Test seam: invoked at the top of [send], i.e. once the batch has left
+    // `buffer`, so a unit test can drive a concurrent [persistBufferToDisk]
+    // through the handoff window. Always null in production.
+    internal var beforeSendHook: (suspend () -> Unit)? = null
 
     companion object {
         private const val TAG = "PubkyPulse.transport"
@@ -150,7 +168,7 @@ internal class EventTransport(
 
     /** Buffer one event, auto-flushing at [BATCH_SIZE]. Mirrors Swift's `enqueue(_:)`. */
     suspend fun enqueue(event: LogEvent) {
-        val shouldFlush = bufferMutex.withLock {
+        val shouldFlush = stateMutex.withLock {
             buffer.add(event)
             trimBuffer()
             buffer.size >= BATCH_SIZE
@@ -161,7 +179,7 @@ internal class EventTransport(
     /** Buffer a batch, auto-flushing at [BATCH_SIZE]. Mirrors Swift's `enqueue(_:[])`. */
     suspend fun enqueue(events: List<LogEvent>) {
         if (events.isEmpty()) return
-        val shouldFlush = bufferMutex.withLock {
+        val shouldFlush = stateMutex.withLock {
             buffer.addAll(events)
             trimBuffer()
             buffer.size >= BATCH_SIZE
@@ -169,12 +187,27 @@ internal class EventTransport(
         if (shouldFlush) scope.launch { flush() }
     }
 
-    /** Caller holds [bufferMutex]. Drop the oldest past [MAX_BUFFER_SIZE]. */
+    /** Caller holds [stateMutex]. Drop the oldest past [MAX_BUFFER_SIZE]. */
     private fun trimBuffer() {
         if (buffer.size > MAX_BUFFER_SIZE) {
             val overflow = buffer.size - MAX_BUFFER_SIZE
             repeat(overflow) { buffer.removeAt(0) }
         }
+    }
+
+    /**
+     * Caller holds [stateMutex]. Move the next [BATCH_SIZE] events out of
+     * [buffer] and into [inFlightBatches] in one step, so the batch is never
+     * invisible to [persistBufferToDisk]. Null when the buffer is empty.
+     */
+    private fun takeBatchLocked(): PendingBatch? {
+        if (buffer.isEmpty()) return null
+        val take = min(BATCH_SIZE, buffer.size)
+        val events = ArrayList(buffer.subList(0, take))
+        repeat(take) { buffer.removeAt(0) }
+        val id = nextInFlightBatchId++
+        inFlightBatches[id] = InFlightBatch(events)
+        return PendingBatch(id, events)
     }
 
     /**
@@ -185,60 +218,67 @@ internal class EventTransport(
     suspend fun flush() {
         val offlineEvents = offlineQueue.drain()
 
-        val batch = bufferMutex.withLock {
+        val pending = stateMutex.withLock {
             if (offlineEvents.isNotEmpty()) buffer.addAll(0, offlineEvents)
-            if (buffer.isEmpty()) return
-            val take = min(BATCH_SIZE, buffer.size)
-            val out = ArrayList(buffer.subList(0, take))
-            repeat(take) { buffer.removeAt(0) }
-            out
+            takeBatchLocked() ?: return
         }
 
-        if (!networkMonitor.isConnected) {
-            handleUndelivered(batch)
-            return
-        }
-
-        if (!send(batch)) {
-            handleUndelivered(batch)
-        }
+        val delivered = networkMonitor.isConnected && send(pending)
+        retire(pending, delivered)
     }
 
     /**
      * Drain everything in batches until the buffer is empty. Used on shutdown
      * and before an identity claim. Mirrors Swift's `flushAll()`.
+     *
+     * [maxAttemptsPerBatch] caps each batch's retry ladder. Foreground callers
+     * take the default full ladder. The background (ON_STOP) caller passes 1:
+     * a 429/503 `Retry-After` can park the ladder for up to a minute per
+     * attempt, and Android is free to kill a backgrounded process long before
+     * that — so the background path takes one shot per batch and routes
+     * anything undelivered to the offline queue immediately, leaving
+     * [persistBufferToDisk] free to run while the process is still alive.
      */
-    suspend fun flushAll() {
+    suspend fun flushAll(maxAttemptsPerBatch: Int = MAX_RETRIES) {
         val offlineEvents = offlineQueue.drain()
-        bufferMutex.withLock {
+        stateMutex.withLock {
             if (offlineEvents.isNotEmpty()) buffer.addAll(0, offlineEvents)
         }
 
         while (true) {
-            val batch = bufferMutex.withLock {
-                if (buffer.isEmpty()) return
-                val take = min(BATCH_SIZE, buffer.size)
-                val out = ArrayList(buffer.subList(0, take))
-                repeat(take) { buffer.removeAt(0) }
-                out
-            }
+            val pending = stateMutex.withLock { takeBatchLocked() ?: return }
 
             if (!networkMonitor.isConnected) {
                 // Offline mid-drain: push this batch + the remainder back to the
                 // offline queue and stop, matching Swift's `batch + buffer` path.
-                val remainder = bufferMutex.withLock {
-                    val rest = ArrayList(buffer)
+                val undelivered = stateMutex.withLock {
+                    val out = ArrayList<LogEvent>()
+                    val parked = inFlightBatches.remove(pending.id)?.persisted == true
+                    if (!parked) out.addAll(pending.events)
+                    out.addAll(buffer)
                     buffer.clear()
-                    rest
+                    out
                 }
-                handleUndelivered(batch + remainder)
+                handleUndelivered(undelivered)
                 return
             }
 
-            if (!send(batch)) {
-                handleUndelivered(batch)
-            }
+            retire(pending, send(pending, maxAttemptsPerBatch))
         }
+    }
+
+    /**
+     * Drop a batch's in-flight registration and, unless it was delivered or
+     * already parked by [persistBufferToDisk], route it to the offline queue.
+     * Skipping a parked batch is what stops a persist during the send from
+     * appending a second copy.
+     */
+    private suspend fun retire(pending: PendingBatch, delivered: Boolean) {
+        val parked = stateMutex.withLock {
+            inFlightBatches.remove(pending.id)?.persisted == true
+        }
+        if (delivered || parked) return
+        handleUndelivered(pending.events)
     }
 
     /** Route an undelivered batch to the offline queue. Mirrors Swift's `handleUndelivered`. */
@@ -257,26 +297,23 @@ internal class EventTransport(
      * suspend for up to ~61 s, so persisting only `buffer` would lose it if
      * Android killed the process mid-retry. Those batches are parked first
      * (oldest first, ahead of the buffer) so replay order is preserved, and each
-     * is marked persisted so a second persist during the same send — and the
-     * send's own failure path — never append a duplicate copy.
+     * is marked persisted so a second persist during the same send — and
+     * [retire] once the send returns — never append a duplicate copy.
      */
     suspend fun persistBufferToDisk() {
-        val inFlight = inFlightMutex.withLock {
+        val pending = stateMutex.withLock {
             val out = ArrayList<LogEvent>()
             for (batch in inFlightBatches.values) {
                 if (batch.persisted) continue
                 batch.persisted = true
                 out.addAll(batch.events)
             }
-            out
-        }
-        val buffered = bufferMutex.withLock {
-            val out = ArrayList(buffer)
+            out.addAll(buffer)
             buffer.clear()
             out
         }
-        if (inFlight.isEmpty() && buffered.isEmpty()) return
-        offlineQueue.enqueue(inFlight + buffered)
+        if (pending.isEmpty()) return
+        offlineQueue.enqueue(pending)
         offlineQueue.persistNow()
     }
 
@@ -545,30 +582,26 @@ internal class EventTransport(
     }
 
     /**
-     * POST one ingest batch, tracking it as in-flight so [claimIdentity] can
-     * drain and [persistBufferToDisk] can park it. Mirrors Swift's `send(_:)`.
+     * POST one already-registered in-flight batch, counted so [claimIdentity]
+     * can drain on it. Mirrors Swift's `send(_:)`. The retry ladder abandons the
+     * batch once [persistBufferToDisk] has parked it, and [retire] — not this —
+     * decides whether an undelivered batch goes to the offline queue, so a
+     * parked batch is never appended twice. Replaying a parked batch that also
+     * reached the server is fine: ingest deduplicates on `client_event_id`, so a
+     * duplicate is cheap where a loss is not.
      *
-     * Reports the batch as handled when [persistBufferToDisk] parked it, so the
-     * caller does not route a second copy to the offline queue. That can mean a
-     * duplicate delivery once the queue replays — ingest deduplicates on
-     * `client_event_id`, so a duplicate is cheap where a loss is not.
+     * [maxAttempts] is the batch's retry ladder length; see [flushAll].
      */
-    private suspend fun send(events: List<LogEvent>): Boolean {
-        val body = IngestRequestBody(bundleId, events).toJsonString().toByteArray(Charsets.UTF_8)
+    private suspend fun send(pending: PendingBatch, maxAttempts: Int = MAX_RETRIES): Boolean {
+        beforeSendHook?.invoke()
+        val body = IngestRequestBody(bundleId, pending.events).toJsonString().toByteArray(Charsets.UTF_8)
         val request = makeRequest(ingestUrl, body)
 
-        val batchId = inFlightMutex.withLock {
-            val id = nextInFlightBatchId++
-            inFlightBatches[id] = InFlightBatch(events)
-            inFlightSendCount += 1
-            id
-        }
+        stateMutex.withLock { inFlightSendCount += 1 }
         try {
-            val delivered = performWithRetry(request, "Ingest") { isBatchPersisted(batchId) }
-            return delivered || isBatchPersisted(batchId)
+            return performWithRetry(request, "Ingest", maxAttempts) { isBatchPersisted(pending.id) }
         } finally {
-            val waiters = inFlightMutex.withLock {
-                inFlightBatches.remove(batchId)
+            val waiters = stateMutex.withLock {
                 inFlightSendCount -= 1
                 if (inFlightSendCount == 0) {
                     val w = ArrayList(sendDrainContinuations)
@@ -584,18 +617,18 @@ internal class EventTransport(
 
     /** Whether [persistBufferToDisk] has already parked this in-flight batch. */
     private suspend fun isBatchPersisted(batchId: Long): Boolean =
-        inFlightMutex.withLock { inFlightBatches[batchId]?.persisted == true }
+        stateMutex.withLock { inFlightBatches[batchId]?.persisted == true }
 
     /**
      * Suspend until every in-flight ingest send has returned. Mirrors Swift's
      * `awaitInFlightSends()` (the continuation-drain pattern).
      */
     private suspend fun awaitInFlightSends() {
-        val mustWait = inFlightMutex.withLock { inFlightSendCount > 0 }
+        val mustWait = stateMutex.withLock { inFlightSendCount > 0 }
         if (!mustWait) return
         suspendCoroutine { continuation: Continuation<Unit> ->
             scope.launch {
-                val resumeNow = inFlightMutex.withLock {
+                val resumeNow = stateMutex.withLock {
                     if (inFlightSendCount == 0) {
                         true
                     } else {
@@ -626,10 +659,10 @@ internal class EventTransport(
     }
 
     /**
-     * Execute [request] with retries. Retries transport failures, 5xx and 429
-     * (rate limiting is transient — dropping the batch there is how a throttled
-     * app silently loses data) up to [MAX_RETRIES]; every other 4xx is permanent
-     * and returns immediately. Backoff is exponential, capped at
+     * Execute [request] with up to [maxAttempts] attempts. Retries transport
+     * failures, 5xx and 429 (rate limiting is transient — dropping the batch
+     * there is how a throttled app silently loses data); every other 4xx is
+     * permanent and returns immediately. Backoff is exponential, capped at
      * [MAX_BACKOFF_SECONDS], raised to a server-sent `Retry-After` on the two
      * statuses that carry one. Mirrors Swift's `performWithRetry`.
      *
@@ -640,9 +673,10 @@ internal class EventTransport(
     private suspend fun performWithRetry(
         request: HttpRequest,
         label: String,
+        maxAttempts: Int = MAX_RETRIES,
         isHandled: suspend () -> Boolean = { false },
     ): Boolean {
-        for (attempt in 0 until MAX_RETRIES) {
+        for (attempt in 0 until maxAttempts) {
             if (attempt > 0 && isHandled()) {
                 Log.i(TAG, "$label batch already persisted offline, stopping retries")
                 return false
@@ -670,12 +704,12 @@ internal class EventTransport(
                 if (code == STATUS_TOO_MANY_REQUESTS || code == STATUS_SERVICE_UNAVAILABLE) {
                     retryAfterSeconds = parseRetryAfterSeconds(response.header("Retry-After"))
                 }
-                Log.w(TAG, "$label returned $code, attempt ${attempt + 1}/$MAX_RETRIES")
+                Log.w(TAG, "$label returned $code, attempt ${attempt + 1}/$maxAttempts")
             }.onFailure { error ->
-                Log.w(TAG, "$label failed: ${error.message}, attempt ${attempt + 1}/$MAX_RETRIES")
+                Log.w(TAG, "$label failed: ${error.message}, attempt ${attempt + 1}/$maxAttempts")
             }
 
-            if (attempt < MAX_RETRIES - 1) {
+            if (attempt < maxAttempts - 1) {
                 delay((retryDelaySeconds(attempt, retryAfterSeconds) * 1000).toLong())
             }
         }
