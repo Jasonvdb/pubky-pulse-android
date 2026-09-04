@@ -8,15 +8,15 @@
 
     <application
         android:name=".DemoApp"
-        android:label="Owlmetry Demo"
-        android:theme="@style/Theme.OwlmetryDemo"
+        android:label="Pubky Pulse Demo"
+        android:theme="@style/Theme.PubkyPulseDemo"
         android:usesCleartextTraffic="true"
         android:supportsRtl="true">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="Owlmetry Demo">
+            android:label="Pubky Pulse Demo">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

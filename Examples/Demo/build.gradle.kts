@@ -13,11 +13,11 @@ plugins {
 }
 
 android {
-    namespace = "com.owlmetry.android.demo"
+    namespace = "org.pubky.pulse.android.demo"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.owlmetry.android.demo"
+        applicationId = "org.pubky.pulse.android.demo"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -47,8 +47,8 @@ android {
 dependencies {
     // The SDK under test — both modules by project reference so the demo always
     // compiles against the in-tree source, not a published artifact.
-    implementation(project(":owlmetry-android"))
-    implementation(project(":owlmetry-android-compose"))
+    implementation(project(":pulse-android"))
+    implementation(project(":pulse-android-compose"))
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)

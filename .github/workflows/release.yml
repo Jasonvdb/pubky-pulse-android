@@ -19,12 +19,13 @@ jobs:
     steps:
       # Block the release until the Test workflow's job goes green on THIS sha,
       # so a bad push to main can't auto-tag + publish a broken release. The
-      # regexp must match the Test workflow's job name ("Lint + unit tests").
+      # regexp must match the Test workflow's job name ("Lint + unit tests");
+      # single-quoted so the backslash escaping the "+" survives YAML verbatim.
       - name: Wait for lint + unit tests
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.sha }}
-          check-regexp: "Lint \\+ unit tests"
+          check-regexp: 'Lint \+ unit tests'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
           allowed-conclusions: success
@@ -35,6 +36,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Publishing needs the GPG key + Central Portal credentials. `secrets` is not
+    # available in a step-level `if:`, and a step's own `env:` is not reliably
+    # visible to that step's `if:` either — so resolve the presence check once
+    # here, at the job level, where the whole job's `env` context can see it.
+    env:
+      HAS_MAVEN_SECRETS: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKey != '' && secrets.ORG_GRADLE_PROJECT_mavenCentralUsername != '' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -79,7 +86,7 @@ jobs:
         run: |
           # Strip leading "v" — both are plain semver.
           version="${NEXT#v}"
-          kt="owlmetry-android/src/main/kotlin/com/owlmetry/android/OwlmetryVersion.kt"
+          kt="pulse-android/src/main/kotlin/org/pubky/pulse/android/PubkyPulseVersion.kt"
           props="gradle.properties"
           # Runtime SDK-version constant stamped on every event.
           sed -i -E "s/(public const val CURRENT: String = )\"[^\"]*\"/\1\"$version\"/" "$kt"
@@ -102,11 +109,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag "${{ steps.ver.outputs.next }}"
-          git push origin "${{ steps.ver.outputs.next }}"
-          gh release create "${{ steps.ver.outputs.next }}" \
-            --title "${{ steps.ver.outputs.next }}" \
-            --generate-notes
+          next="${{ steps.ver.outputs.next }}"
+          git tag "$next"
+          git push origin "$next"
+          # Retry `gh release create`, skipping if the release already exists —
+          # the tag push is already durable at this point, so a transient API
+          # failure must not leave a tagged commit with no release.
+          for i in 1 2 3; do
+            if gh release view "$next" >/dev/null 2>&1; then
+              echo "Release $next already exists, skipping"
+              exit 0
+            fi
+            if gh release create "$next" --title "$next" --generate-notes; then
+              exit 0
+            fi
+            echo "gh release create attempt $i failed; sleeping 15s..."
+            sleep 15
+          done
+          echo "Failed to create release after 3 attempts"
+          exit 1
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -128,15 +149,13 @@ jobs:
       #   signingInMemoryKeyPassword — its passphrase
       #   mavenCentralUsername       — Central Portal token username
       #   mavenCentralPassword       — Central Portal token password
-      # Gated on the GPG + Sonatype secrets being present so forks / pre-config
-      # pushes tag-and-release without failing the job on a missing credential.
+      # Gated on HAS_MAVEN_SECRETS (computed at the job level) so forks and
+      # pre-config pushes tag-and-release without failing on a missing credential.
       # --no-configuration-cache: the publish/signing tasks aren't
       # configuration-cache safe, and the repo enables it by default in
       # gradle.properties.
       - name: Publish to Maven Central
-        if: >-
-          env.ORG_GRADLE_PROJECT_signingInMemoryKey != '' &&
-          env.ORG_GRADLE_PROJECT_mavenCentralUsername != ''
+        if: ${{ env.HAS_MAVEN_SECRETS == 'true' }}
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKey }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKeyPassword }}

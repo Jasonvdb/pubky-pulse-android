@@ -20,10 +20,10 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "owlmetry-android"
+rootProject.name = "pubky-pulse-android"
 
-include(":owlmetry-android")
-include(":owlmetry-android-compose")
+include(":pulse-android")
+include(":pulse-android-compose")
 
 // Demo app — a build-time canary that always exercises the public SDK + Compose
 // UI surface. Lives under Examples/ (release.yml paths-ignores it) and carries no
