@@ -32,7 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * Drives a real [EventTransport] over a recording [HttpClient] + a fake
  * [LifecycleOwner] (`LifecycleRegistry`) so the foreground/background callbacks
  * fire deterministically under the test scheduler. The `sdk:app_foregrounded` /
- * `sdk:app_backgrounded` events route through the live `Owl.log` pipeline, so
+ * `sdk:app_backgrounded` events route through the live `Pulse.log` pipeline, so
  * the SDK is configured first.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -87,16 +87,16 @@ class LifecycleObserverTest {
         clientEventId = id,
         sessionId = "session-1",
         userId = "user-1",
-        level = OwlLogLevel.INFO,
+        level = PulseLogLevel.INFO,
         sourceModule = null,
         message = "buffered",
         screenName = null,
         customAttributes = null,
-        environment = OwlPlatform.ANDROID,
+        environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.0.0",
-        sdkName = OwlmetryVersion.NAME,
-        sdkVersion = OwlmetryVersion.CURRENT,
+        sdkName = PubkyPulseVersion.NAME,
+        sdkVersion = PubkyPulseVersion.CURRENT,
         buildNumber = null,
         deviceModel = "Pixel",
         locale = null,
@@ -182,14 +182,14 @@ class LifecycleObserverTest {
     @Test
     fun `first onStart is suppressed, second emits app_foregrounded`() {
         // Plain (non-runTest) test: the `app_foregrounded` events route through
-        // the live `Owl` pipeline (real Dispatchers.Default scope), so a test
+        // the live `Pulse` pipeline (real Dispatchers.Default scope), so a test
         // scheduler would never advance it — drive the observer callbacks
-        // directly and poll on the wall clock, exactly like OwlLoggingTest.
+        // directly and poll on the wall clock, exactly like PulseLoggingTest.
         val http = FakeHttpClient()
-        Owl.resetForTesting()
-        Owl.httpClientOverrideForTesting = http
+        Pulse.resetForTesting()
+        Pulse.httpClientOverrideForTesting = http
         try {
-            Owl.configure(
+            Pulse.configure(
                 context = androidx.test.core.app.ApplicationProvider.getApplicationContext(),
                 endpoint = "https://ingest.example.com",
                 apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -201,9 +201,9 @@ class LifecycleObserverTest {
 
             val owner = FakeLifecycleOwner()
             // The flush scope is irrelevant here — these assertions exercise only
-            // onStart, which routes through the live Owl pipeline, not the scope.
+            // onStart, which routes through the live Pulse pipeline, not the scope.
             val observer = LifecycleObserver(
-                transport = Owl.transport!!,
+                transport = Pulse.transport!!,
                 scope = CoroutineScope(Dispatchers.Default),
                 lifecycleOwner = owner,
             )
@@ -211,7 +211,7 @@ class LifecycleObserverTest {
             // First ON_START (cold launch) — suppressed. Drain via setUser and
             // confirm no app_foregrounded event reached the server.
             observer.onStart(owner)
-            Owl.setUser("real-user-1-${System.nanoTime()}")
+            Pulse.setUser("real-user-1-${System.nanoTime()}")
             pollUntil(5_000) { http.requests.any { it.url.toString().endsWith("/v1/identity/claim") } }
             assertEquals(
                 "first ON_START must not emit app_foregrounded",
@@ -223,7 +223,7 @@ class LifecycleObserverTest {
 
             // Second ON_START (real foreground return) → emit app_foregrounded.
             observer.onStart(owner)
-            Owl.setUser("real-user-2-${System.nanoTime()}")
+            Pulse.setUser("real-user-2-${System.nanoTime()}")
             pollUntil(5_000) {
                 http.requests.any { it.url.toString().endsWith("/v1/ingest") && bodyHasMessage(it, "sdk:app_foregrounded") }
             }
@@ -233,8 +233,8 @@ class LifecycleObserverTest {
                 http.requests.any { it.url.toString().endsWith("/v1/ingest") && bodyHasMessage(it, "sdk:app_foregrounded") },
             )
         } finally {
-            Owl.resetForTesting()
-            Owl.httpClientOverrideForTesting = null
+            Pulse.resetForTesting()
+            Pulse.httpClientOverrideForTesting = null
         }
     }
 

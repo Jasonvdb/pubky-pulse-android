@@ -8,7 +8,7 @@ plugins {
 
 // Published coordinates. GROUP + VERSION_NAME come from gradle.properties so the
 // release workflow has a single bump target; keep VERSION_NAME in sync with
-// OwlmetryVersion.CURRENT (the runtime SDK-version constant stamped on events).
+// PubkyPulseVersion.CURRENT (the runtime SDK-version constant stamped on events).
 group = providers.gradleProperty("GROUP").get()
 version = providers.gradleProperty("VERSION_NAME").get()
 
@@ -72,7 +72,7 @@ mavenPublishing {
     coordinates(group.toString(), "pulse-android", version.toString())
 
     pom {
-        name.set("Owlmetry Android SDK")
+        name.set("Pubky Pulse Android SDK")
         description.set(
             "Kotlin SDK for Android — event logging, metrics, funnels, identity, " +
                 "screen tracking, feedback, and questionnaires. Core module (framework + coroutines only)."
@@ -91,7 +91,7 @@ mavenPublishing {
         developers {
             developer {
                 id.set("owlmetry")
-                name.set("Owlmetry")
+                name.set("Pubky Pulse")
                 url.set("https://owlmetry.com")
             }
         }

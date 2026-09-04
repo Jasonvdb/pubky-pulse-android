@@ -1,6 +1,6 @@
 package org.pubky.pulse.android.demo
 
-import org.pubky.pulse.android.Owl
+import org.pubky.pulse.android.Pulse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -10,8 +10,8 @@ import java.net.URL
 /**
  * The Android analog of the Swift demo's `callBackend`. POSTs JSON to the Node
  * demo server (`http://10.0.2.2:4007` — the emulator alias for the host's
- * localhost:4007) and stamps the current Owlmetry session id on the
- * `X-Owl-Session-Id` header so the backend's server-side events correlate into
+ * localhost:4007) and stamps the current Pubky Pulse session id on the
+ * `X-Pulse-Session-Id` header so the backend's server-side events correlate into
  * the same session as the client events.
  *
  * Runs the blocking [HttpURLConnection] call on [Dispatchers.IO]; returns a
@@ -27,7 +27,7 @@ suspend fun callBackend(path: String, body: Map<String, String?>): String =
                 readTimeout = 5_000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
-                Owl.sessionId?.let { setRequestProperty("X-Owl-Session-Id", it) }
+                Pulse.sessionId?.let { setRequestProperty("X-Pulse-Session-Id", it) }
             }
 
             val payload = JSONObject()

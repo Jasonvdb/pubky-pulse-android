@@ -22,12 +22,12 @@ class LogEventWireTest {
         clientEventId = "evt-1",
         sessionId = "sess-1",
         userId = "owl_anon_x",
-        level = OwlLogLevel.WARN,
+        level = PulseLogLevel.WARN,
         sourceModule = "Main.kt:onCreate:42",
         message = "hello",
         screenName = "Home",
         customAttributes = linkedMapOf("a" to "1", "_file" to "Main.kt"),
-        environment = OwlPlatform.ANDROID,
+        environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
         sdkName = "owlmetry-android",
@@ -113,10 +113,10 @@ class LogEventWireTest {
 
     @Test
     fun logLevelWireValuesMatchSwift() {
-        assertEquals("info", OwlLogLevel.INFO.wire)
-        assertEquals("debug", OwlLogLevel.DEBUG.wire)
-        assertEquals("warn", OwlLogLevel.WARN.wire)
-        assertEquals("error", OwlLogLevel.ERROR.wire)
+        assertEquals("info", PulseLogLevel.INFO.wire)
+        assertEquals("debug", PulseLogLevel.DEBUG.wire)
+        assertEquals("warn", PulseLogLevel.WARN.wire)
+        assertEquals("error", PulseLogLevel.ERROR.wire)
     }
 
     @Test

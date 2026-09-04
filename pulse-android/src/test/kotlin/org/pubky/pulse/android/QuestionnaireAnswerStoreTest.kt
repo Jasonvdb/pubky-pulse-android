@@ -6,32 +6,32 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pure logic tests for [OwlQuestionnaireAnswerStore] — no Android framework, so
- * a plain JVM unit test. Mirrors the Swift `OwlQuestionnaireAnswerStore` tests.
+ * Pure logic tests for [PulseQuestionnaireAnswerStore] — no Android framework, so
+ * a plain JVM unit test. Mirrors the Swift `PulseQuestionnaireAnswerStore` tests.
  */
 class QuestionnaireAnswerStoreTest {
 
-    private fun schema(): OwlQuestionnaireSchema = OwlQuestionnaireSchema(
+    private fun schema(): PulseQuestionnaireSchema = PulseQuestionnaireSchema(
         version = 1,
         questions = listOf(
-            OwlQuestionnaireQuestion.Text("t", "Text", null, required = true, placeholder = null, multiline = false),
-            OwlQuestionnaireQuestion.SingleChoice(
+            PulseQuestionnaireQuestion.Text("t", "Text", null, required = true, placeholder = null, multiline = false),
+            PulseQuestionnaireQuestion.SingleChoice(
                 "s", "Single", null, required = false,
-                options = listOf(OwlQuestionnaireChoiceOption("a", "A"), OwlQuestionnaireChoiceOption("b", "B")),
+                options = listOf(PulseQuestionnaireChoiceOption("a", "A"), PulseQuestionnaireChoiceOption("b", "B")),
             ),
-            OwlQuestionnaireQuestion.MultiChoice(
+            PulseQuestionnaireQuestion.MultiChoice(
                 "m", "Multi", null, required = false,
-                options = listOf(OwlQuestionnaireChoiceOption("x", "X"), OwlQuestionnaireChoiceOption("y", "Y")),
+                options = listOf(PulseQuestionnaireChoiceOption("x", "X"), PulseQuestionnaireChoiceOption("y", "Y")),
             ),
-            OwlQuestionnaireQuestion.Rating("r", "Rating", null, required = true, scale = 5),
-            OwlQuestionnaireQuestion.Nps("n", "Nps", null, required = false),
+            PulseQuestionnaireQuestion.Rating("r", "Rating", null, required = true, scale = 5),
+            PulseQuestionnaireQuestion.Nps("n", "Nps", null, required = false),
         ),
     )
 
     @Test
     fun isAnsweredTracksEachQuestionType() {
         val s = schema()
-        var store = OwlQuestionnaireAnswerStore()
+        var store = PulseQuestionnaireAnswerStore()
         assertFalse(store.isAnswered(s.questions[0]))
         store = store.withText("t", "   ")
         // whitespace-only text counts as unanswered
@@ -56,7 +56,7 @@ class QuestionnaireAnswerStoreTest {
     @Test
     fun hasAllRequiredGatesOnRequiredOnly() {
         val s = schema()
-        var store = OwlQuestionnaireAnswerStore()
+        var store = PulseQuestionnaireAnswerStore()
         assertFalse(store.hasAllRequired(s)) // text + rating required, both missing
         store = store.withText("t", "hi")
         assertFalse(store.hasAllRequired(s)) // rating still missing
@@ -67,7 +67,7 @@ class QuestionnaireAnswerStoreTest {
     @Test
     fun firstUnansweredIndexWalksSchema() {
         val s = schema()
-        var store = OwlQuestionnaireAnswerStore()
+        var store = PulseQuestionnaireAnswerStore()
         assertEquals(0, store.firstUnansweredIndex(s))
         store = store.withText("t", "hi")
         // q[1] single is optional but unanswered → index 1
@@ -80,7 +80,7 @@ class QuestionnaireAnswerStoreTest {
     @Test
     fun collectedTrimsAndSortsAndDropsEmpty() {
         val s = schema()
-        val store = OwlQuestionnaireAnswerStore()
+        val store = PulseQuestionnaireAnswerStore()
             .withText("t", "  spaced  ")
             .withSingle("s", "a")
             .togglingMulti("m", "y")
@@ -88,21 +88,21 @@ class QuestionnaireAnswerStoreTest {
             .withRating("r", 4)
         // n (nps) left empty → omitted
         val collected = store.collected(s)
-        assertEquals(OwlQuestionnaireAnswerValue.TextValue("spaced"), collected["t"])
-        assertEquals(OwlQuestionnaireAnswerValue.ChoiceValue("a"), collected["s"])
+        assertEquals(PulseQuestionnaireAnswerValue.TextValue("spaced"), collected["t"])
+        assertEquals(PulseQuestionnaireAnswerValue.ChoiceValue("a"), collected["s"])
         // multi sorted ascending
-        assertEquals(OwlQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")), collected["m"])
-        assertEquals(OwlQuestionnaireAnswerValue.RatingValue(4), collected["r"])
+        assertEquals(PulseQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")), collected["m"])
+        assertEquals(PulseQuestionnaireAnswerValue.RatingValue(4), collected["r"])
         assertFalse(collected.containsKey("n"))
     }
 
     @Test
     fun prefilledHydratesFromDraft() {
-        val store = OwlQuestionnaireAnswerStore().prefilled(
+        val store = PulseQuestionnaireAnswerStore().prefilled(
             mapOf(
-                "t" to OwlQuestionnaireAnswerValue.TextValue("draft"),
-                "m" to OwlQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")),
-                "r" to OwlQuestionnaireAnswerValue.RatingValue(2),
+                "t" to PulseQuestionnaireAnswerValue.TextValue("draft"),
+                "m" to PulseQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")),
+                "r" to PulseQuestionnaireAnswerValue.RatingValue(2),
             ),
         )
         assertEquals("draft", store.text["t"])

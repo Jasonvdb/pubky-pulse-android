@@ -181,7 +181,7 @@ class ErrorExtractionTest {
 
     // --- Crash safety: a hostile/buggy host Throwable must never escape ---------
     //
-    // Owl.error(Throwable) runs ErrorExtraction.extract SYNCHRONOUSLY on the
+    // Pulse.error(Throwable) runs ErrorExtraction.extract SYNCHRONOUSLY on the
     // caller's thread. A host can pass a custom exception whose overridable
     // accessors throw; extract() must degrade gracefully, never propagate. An
     // analytics SDK can never be the thing that crashes its host through its own

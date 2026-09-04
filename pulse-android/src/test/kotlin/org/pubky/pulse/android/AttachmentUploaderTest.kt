@@ -118,7 +118,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-1",
             userId = "user-9",
             isDev = true,
-            attachments = listOf(OwlAttachment.bytes(bytes, name = "log.txt", contentType = "text/plain")),
+            attachments = listOf(PulseAttachment.bytes(bytes, name = "log.txt", contentType = "text/plain")),
         )
         advanceUntilIdle()
 
@@ -155,7 +155,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-2",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("x".toByteArray(), name = "a.bin")),
+            attachments = listOf(PulseAttachment.bytes("x".toByteArray(), name = "a.bin")),
         )
         advanceUntilIdle()
 
@@ -172,7 +172,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-3",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes(ByteArray(0), name = "empty.bin")),
+            attachments = listOf(PulseAttachment.bytes(ByteArray(0), name = "empty.bin")),
         )
         advanceUntilIdle()
 
@@ -189,7 +189,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-4",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("12345".toByteArray(), name = "big.bin")),
+            attachments = listOf(PulseAttachment.bytes("12345".toByteArray(), name = "big.bin")),
         )
         advanceUntilIdle()
 
@@ -205,7 +205,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-5",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("data".toByteArray(), name = "r.bin")),
+            attachments = listOf(PulseAttachment.bytes("data".toByteArray(), name = "r.bin")),
         )
         advanceUntilIdle()
 
@@ -221,7 +221,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-6",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("data".toByteArray(), name = "r.bin")),
+            attachments = listOf(PulseAttachment.bytes("data".toByteArray(), name = "r.bin")),
         )
         advanceUntilIdle()
 
@@ -237,7 +237,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-7",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("data".toByteArray(), name = "r.bin")),
+            attachments = listOf(PulseAttachment.bytes("data".toByteArray(), name = "r.bin")),
         )
         advanceUntilIdle()
 
@@ -257,7 +257,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-8",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.file(file)),
+            attachments = listOf(PulseAttachment.file(file)),
         )
         advanceUntilIdle()
 
@@ -281,7 +281,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-ct1",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("blob".toByteArray(), name = "data.zzzz")),
+            attachments = listOf(PulseAttachment.bytes("blob".toByteArray(), name = "data.zzzz")),
         )
         advanceUntilIdle()
 
@@ -300,7 +300,7 @@ class AttachmentUploaderTest {
             userId = null,
             isDev = false,
             attachments = listOf(
-                OwlAttachment.bytes("payload".toByteArray(), name = "report.txt", contentType = "application/x-owl"),
+                PulseAttachment.bytes("payload".toByteArray(), name = "report.txt", contentType = "application/x-owl"),
             ),
         )
         advanceUntilIdle()
@@ -320,7 +320,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-badurl",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("data".toByteArray(), name = "r.bin")),
+            attachments = listOf(PulseAttachment.bytes("data".toByteArray(), name = "r.bin")),
         )
         advanceUntilIdle()
 
@@ -356,7 +356,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-neterr",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes("data".toByteArray(), name = "r.bin")),
+            attachments = listOf(PulseAttachment.bytes("data".toByteArray(), name = "r.bin")),
         )
         advanceUntilIdle()
 
@@ -373,7 +373,7 @@ class AttachmentUploaderTest {
             clientEventId = "evt-size",
             userId = null,
             isDev = false,
-            attachments = listOf(OwlAttachment.bytes(bytes, name = "blob.bin")),
+            attachments = listOf(PulseAttachment.bytes(bytes, name = "blob.bin")),
         )
         advanceUntilIdle()
 
@@ -392,9 +392,9 @@ class AttachmentUploaderTest {
             userId = null,
             isDev = false,
             attachments = listOf(
-                OwlAttachment.bytes("one".toByteArray(), name = "1.txt"),
-                OwlAttachment.bytes("two".toByteArray(), name = "2.txt"),
-                OwlAttachment.bytes("three".toByteArray(), name = "3.txt"),
+                PulseAttachment.bytes("one".toByteArray(), name = "1.txt"),
+                PulseAttachment.bytes("two".toByteArray(), name = "2.txt"),
+                PulseAttachment.bytes("three".toByteArray(), name = "3.txt"),
             ),
         )
         advanceUntilIdle()

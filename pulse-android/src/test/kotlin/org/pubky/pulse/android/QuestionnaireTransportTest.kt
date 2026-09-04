@@ -77,7 +77,7 @@ class QuestionnaireTransportTest {
     """.trimIndent()
 
     private val deviceInfo = DeviceInfo(
-        platform = OwlPlatform.ANDROID,
+        platform = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
         buildNumber = "45",
@@ -97,7 +97,7 @@ class QuestionnaireTransportTest {
         val result = (outcome as QuestionnaireFetchOutcome.Success).result
         assertEquals("nps", result.questionnaire?.slug)
         assertEquals("r-7", result.inProgress?.responseId)
-        assertEquals(OwlQuestionnaireAnswerValue.NpsValue(8), result.inProgress?.answers?.get("n"))
+        assertEquals(PulseQuestionnaireAnswerValue.NpsValue(8), result.inProgress?.answers?.get("n"))
 
         val req = http.requests.first()
         assertEquals("GET", req.method)
@@ -120,7 +120,7 @@ class QuestionnaireTransportTest {
         val outcome = tx.fetchQuestionnaire(slug = "nps", userId = null)
         val result = (outcome as QuestionnaireFetchOutcome.Success).result
         assertNull(result.questionnaire)
-        assertEquals(OwlQuestionnaireIneligibleReason.ALREADY_RESPONDED, result.ineligibleReason)
+        assertEquals(PulseQuestionnaireIneligibleReason.ALREADY_RESPONDED, result.ineligibleReason)
     }
 
     @Test
@@ -128,7 +128,7 @@ class QuestionnaireTransportTest {
         val http = FakeHttpClient().apply { default = HttpResponse(404, "not found") }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val outcome = tx.fetchQuestionnaire(slug = "missing", userId = null)
-        assertTrue((outcome as QuestionnaireFetchOutcome.Failure).error is OwlQuestionnaireError.SlugNotFound)
+        assertTrue((outcome as QuestionnaireFetchOutcome.Failure).error is PulseQuestionnaireError.SlugNotFound)
     }
 
     @Test
@@ -142,7 +142,7 @@ class QuestionnaireTransportTest {
             slug = "nps",
             userId = "owl_anon_42",
             sessionId = "sess-1",
-            answers = mapOf("n" to OwlQuestionnaireAnswerValue.NpsValue(8)),
+            answers = mapOf("n" to PulseQuestionnaireAnswerValue.NpsValue(8)),
             isComplete = true,
             deviceInfo = deviceInfo,
             environment = "android",
@@ -178,8 +178,8 @@ class QuestionnaireTransportTest {
             deviceInfo = deviceInfo, environment = "android", appVersion = null, isDev = false,
         )
         val err = (outcome as QuestionnaireSaveOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.InvalidAnswers)
-        assertEquals("bad answers", (err as OwlQuestionnaireError.InvalidAnswers).detail)
+        assertTrue(err is PulseQuestionnaireError.InvalidAnswers)
+        assertEquals("bad answers", (err as PulseQuestionnaireError.InvalidAnswers).detail)
     }
 
     @Test

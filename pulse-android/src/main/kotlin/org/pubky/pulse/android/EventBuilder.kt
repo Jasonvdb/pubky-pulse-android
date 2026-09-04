@@ -8,7 +8,7 @@ import java.util.UUID
 
 /**
  * Assembles every outgoing [LogEvent]. SDK identity (`sdk_name`/`sdk_version`)
- * is stamped here from [OwlmetryVersion] so call sites never set it. Mirrors the
+ * is stamped here from [PubkyPulseVersion] so call sites never set it. Mirrors the
  * Swift `EventBuilder`:
  *
  *  - `source_module` is `"<fileName>:<function>:<line>"` where `fileName` is the
@@ -43,7 +43,7 @@ internal object EventBuilder {
 
     fun build(
         message: String,
-        level: OwlLogLevel,
+        level: PulseLogLevel,
         screenName: String?,
         customAttributes: Map<String, String>?,
         userId: String?,
@@ -78,8 +78,8 @@ internal object EventBuilder {
             environment = deviceInfo.platform,
             osVersion = deviceInfo.osVersion,
             appVersion = deviceInfo.appVersion,
-            sdkName = OwlmetryVersion.NAME,
-            sdkVersion = OwlmetryVersion.CURRENT,
+            sdkName = PubkyPulseVersion.NAME,
+            sdkVersion = PubkyPulseVersion.CURRENT,
             buildNumber = deviceInfo.buildNumber,
             deviceModel = deviceInfo.deviceModel,
             locale = deviceInfo.locale,

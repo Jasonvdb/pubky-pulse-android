@@ -27,21 +27,21 @@ class ConsoleLoggerPrintTest {
     @Test
     fun sdkEventEmitsNothingToLogcat() {
         ShadowLog.clear()
-        ConsoleLogger.print("sdk:session_started", OwlLogLevel.INFO, null)
+        ConsoleLogger.print("sdk:session_started", PulseLogLevel.INFO, null)
         assertEquals("sdk: events must be suppressed (no Logcat line)", 0, logs().size)
     }
 
     @Test
     fun metricStartEmitsNothingToLogcat() {
         ShadowLog.clear()
-        ConsoleLogger.print("metric:checkout:start", OwlLogLevel.INFO, null)
+        ConsoleLogger.print("metric:checkout:start", PulseLogLevel.INFO, null)
         assertEquals("metric:…:start must be suppressed", 0, logs().size)
     }
 
     @Test
     fun infoRoutesToInfoPriority() {
         ShadowLog.clear()
-        ConsoleLogger.print("hello", OwlLogLevel.INFO, null)
+        ConsoleLogger.print("hello", PulseLogLevel.INFO, null)
         val entries = logs()
         assertEquals(1, entries.size)
         assertEquals(android.util.Log.INFO, entries[0].type)
@@ -51,7 +51,7 @@ class ConsoleLoggerPrintTest {
     @Test
     fun debugRoutesToDebugPriority() {
         ShadowLog.clear()
-        ConsoleLogger.print("d", OwlLogLevel.DEBUG, null)
+        ConsoleLogger.print("d", PulseLogLevel.DEBUG, null)
         val entries = logs()
         assertEquals(1, entries.size)
         assertEquals(android.util.Log.DEBUG, entries[0].type)
@@ -60,7 +60,7 @@ class ConsoleLoggerPrintTest {
     @Test
     fun warnRoutesToWarnPriority() {
         ShadowLog.clear()
-        ConsoleLogger.print("w", OwlLogLevel.WARN, null)
+        ConsoleLogger.print("w", PulseLogLevel.WARN, null)
         val entries = logs()
         assertEquals(1, entries.size)
         assertEquals(android.util.Log.WARN, entries[0].type)
@@ -69,7 +69,7 @@ class ConsoleLoggerPrintTest {
     @Test
     fun errorRoutesToErrorPriority() {
         ShadowLog.clear()
-        ConsoleLogger.print("e", OwlLogLevel.ERROR, null)
+        ConsoleLogger.print("e", PulseLogLevel.ERROR, null)
         val entries = logs()
         assertEquals(1, entries.size)
         assertEquals(android.util.Log.ERROR, entries[0].type)
@@ -79,33 +79,33 @@ class ConsoleLoggerPrintTest {
     fun printEmitsTheSameLineFormatProduces() {
         ShadowLog.clear()
         val attrs = mapOf("z" to "1", "a" to "2")
-        ConsoleLogger.print("hi", OwlLogLevel.WARN, attrs)
+        ConsoleLogger.print("hi", PulseLogLevel.WARN, attrs)
         val entries = logs()
         assertEquals(1, entries.size)
-        assertEquals(ConsoleLogger.format("hi", OwlLogLevel.WARN, attrs), entries[0].msg)
+        assertEquals(ConsoleLogger.format("hi", PulseLogLevel.WARN, attrs), entries[0].msg)
     }
 
     // Rewrite edge cases for the substring math (no dedicated format coverage).
 
     @Test
     fun stepPrefixWithEmptyBodyRewritesToBareStep() {
-        assertEquals("🦉  INFO  step: ", ConsoleLogger.format("step:", OwlLogLevel.INFO, null))
+        assertEquals("🦉  INFO  step: ", ConsoleLogger.format("step:", PulseLogLevel.INFO, null))
     }
 
     @Test
     fun metricPrefixWithTrailingColonSplitsIntoEmptyPhase() {
         // "metric:name:" → name + empty phase → "metric: name " (trailing space).
-        assertEquals("🦉  INFO  metric: name ", ConsoleLogger.format("metric:name:", OwlLogLevel.INFO, null))
+        assertEquals("🦉  INFO  metric: name ", ConsoleLogger.format("metric:name:", PulseLogLevel.INFO, null))
     }
 
     @Test
     fun metricSuppressionOnlyTriggersOnStartSuffix() {
         // "metric:x:started" ends with "started" not ":start", so it is NOT
         // suppressed — only the exact ":start" terminal suffix is.
-        assertNull(ConsoleLogger.format("metric:x:start", OwlLogLevel.INFO, null))
+        assertNull(ConsoleLogger.format("metric:x:start", PulseLogLevel.INFO, null))
         assertEquals(
             "🦉  INFO  metric: x started",
-            ConsoleLogger.format("metric:x:started", OwlLogLevel.INFO, null),
+            ConsoleLogger.format("metric:x:started", PulseLogLevel.INFO, null),
         )
     }
 }

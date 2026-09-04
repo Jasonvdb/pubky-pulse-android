@@ -9,7 +9,7 @@ plugins {
 
 // Published coordinates. GROUP + VERSION_NAME come from gradle.properties so the
 // release workflow has a single bump target; keep VERSION_NAME in sync with
-// OwlmetryVersion.CURRENT (the runtime SDK-version constant stamped on events).
+// PubkyPulseVersion.CURRENT (the runtime SDK-version constant stamped on events).
 group = providers.gradleProperty("GROUP").get()
 version = providers.gradleProperty("VERSION_NAME").get()
 
@@ -105,10 +105,10 @@ mavenPublishing {
     coordinates(group.toString(), "pulse-android-compose", version.toString())
 
     pom {
-        name.set("Owlmetry Android SDK — Compose UI")
+        name.set("Pubky Pulse Android SDK — Compose UI")
         description.set(
-            "Optional Jetpack Compose UI for the Owlmetry Android SDK — drop-in " +
-                "OwlFeedbackView, OwlQuestionnaireView, and the owlScreen modifier. Builds on pulse-android."
+            "Optional Jetpack Compose UI for the Pubky Pulse Android SDK — drop-in " +
+                "PulseFeedbackView, PulseQuestionnaireView, and the pulseScreen modifier. Builds on pulse-android."
         )
         url.set("https://owlmetry.com/github")
         inceptionYear.set("2026")
@@ -124,7 +124,7 @@ mavenPublishing {
         developers {
             developer {
                 id.set("owlmetry")
-                name.set("Owlmetry")
+                name.set("Pubky Pulse")
                 url.set("https://owlmetry.com")
             }
         }

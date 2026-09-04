@@ -22,12 +22,12 @@ public data class LogEvent(
     public val clientEventId: String,
     public val sessionId: String,
     public val userId: String?,
-    public val level: OwlLogLevel,
+    public val level: PulseLogLevel,
     public val sourceModule: String?,
     public val message: String,
     public val screenName: String?,
     public val customAttributes: Map<String, String>?,
-    public val environment: OwlPlatform,
+    public val environment: PulsePlatform,
     public val osVersion: String?,
     public val appVersion: String?,
     public val sdkName: String?,
@@ -85,7 +85,7 @@ public data class LogEvent(
          * `environment`, `is_dev`, `timestamp`) throw [org.json.JSONException]
          * when missing; optional fields default to null when absent — matching
          * the omit-when-null encoding in [toJson]. Unknown `level`/`environment`
-         * wire strings fall back to [OwlLogLevel.INFO] / [OwlPlatform.ANDROID]
+         * wire strings fall back to [PulseLogLevel.INFO] / [PulsePlatform.ANDROID]
          * rather than crashing a flush over a forward-compat value.
          */
         public fun fromJson(obj: JSONObject): LogEvent {
@@ -122,11 +122,11 @@ public data class LogEvent(
             return out
         }
 
-        private fun levelFromWire(wire: String): OwlLogLevel =
-            OwlLogLevel.entries.firstOrNull { it.wire == wire } ?: OwlLogLevel.INFO
+        private fun levelFromWire(wire: String): PulseLogLevel =
+            PulseLogLevel.entries.firstOrNull { it.wire == wire } ?: PulseLogLevel.INFO
 
-        private fun platformFromWire(wire: String): OwlPlatform =
-            OwlPlatform.entries.firstOrNull { it.wire == wire } ?: OwlPlatform.ANDROID
+        private fun platformFromWire(wire: String): PulsePlatform =
+            PulsePlatform.entries.firstOrNull { it.wire == wire } ?: PulsePlatform.ANDROID
 
         private fun stringMap(obj: JSONObject): Map<String, String> {
             val out = LinkedHashMap<String, String>()

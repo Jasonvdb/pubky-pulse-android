@@ -26,7 +26,7 @@ class DeviceInfoTest {
     @Test
     fun environmentIsAndroid() {
         val info = DeviceInfo.collect(context)
-        assertEquals(OwlPlatform.ANDROID, info.platform)
+        assertEquals(PulsePlatform.ANDROID, info.platform)
         // The wire value stamped into the event's `environment` field.
         assertEquals("android", info.platform.wire)
     }

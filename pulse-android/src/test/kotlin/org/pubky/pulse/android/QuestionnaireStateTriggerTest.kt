@@ -12,22 +12,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests for [OwlQuestionnaireState] (SharedPreferences-backed counters) and the
- * pure [OwlQuestionnaireTrigger] / [OwlQuestionnaireCondition] evaluation.
+ * Tests for [PulseQuestionnaireState] (SharedPreferences-backed counters) and the
+ * pure [PulseQuestionnaireTrigger] / [PulseQuestionnaireCondition] evaluation.
  * Robolectric supplies a real [SharedPreferences]. Mirrors the Swift
- * `OwlQuestionnaireState` + trigger tests.
+ * `PulseQuestionnaireState` + trigger tests.
  */
 @RunWith(RobolectricTestRunner::class)
 class QuestionnaireStateTriggerTest {
 
-    private lateinit var state: OwlQuestionnaireState
+    private lateinit var state: PulseQuestionnaireState
 
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val prefs = context.getSharedPreferences("test.questionnaire.state", Context.MODE_PRIVATE)
         prefs.edit().clear().commit()
-        state = OwlQuestionnaireState(prefs)
+        state = PulseQuestionnaireState(prefs)
     }
 
     @Test
@@ -83,49 +83,49 @@ class QuestionnaireStateTriggerTest {
 
     @Test
     fun conditionsEvaluateAgainstSnapshot() {
-        val snap = OwlQuestionnaireState.Snapshot(
+        val snap = PulseQuestionnaireState.Snapshot(
             launchCount = 3,
             foregroundCount = 5,
             firstLaunchAt = 0L,
             now = 10 * 86_400_000L, // 10 days
         )
-        assertTrue(OwlQuestionnaireCondition.Launches(3).isSatisfied(snap))
-        assertFalse(OwlQuestionnaireCondition.Launches(4).isSatisfied(snap))
-        assertTrue(OwlQuestionnaireCondition.Foregrounds(5).isSatisfied(snap))
-        assertTrue(OwlQuestionnaireCondition.DaysSinceFirstLaunch(7).isSatisfied(snap))
-        assertFalse(OwlQuestionnaireCondition.DaysSinceFirstLaunch(11).isSatisfied(snap))
-        assertTrue(OwlQuestionnaireCondition.HoursSinceFirstLaunch(240).isSatisfied(snap))
+        assertTrue(PulseQuestionnaireCondition.Launches(3).isSatisfied(snap))
+        assertFalse(PulseQuestionnaireCondition.Launches(4).isSatisfied(snap))
+        assertTrue(PulseQuestionnaireCondition.Foregrounds(5).isSatisfied(snap))
+        assertTrue(PulseQuestionnaireCondition.DaysSinceFirstLaunch(7).isSatisfied(snap))
+        assertFalse(PulseQuestionnaireCondition.DaysSinceFirstLaunch(11).isSatisfied(snap))
+        assertTrue(PulseQuestionnaireCondition.HoursSinceFirstLaunch(240).isSatisfied(snap))
     }
 
     @Test
     fun triggerAndsConditionsAndManualNeverFires() {
-        val snap = OwlQuestionnaireState.Snapshot(launchCount = 3, foregroundCount = 0, firstLaunchAt = null, now = 0L)
+        val snap = PulseQuestionnaireState.Snapshot(launchCount = 3, foregroundCount = 0, firstLaunchAt = null, now = 0L)
 
-        val both = OwlQuestionnaireTrigger.whenAll(
-            OwlQuestionnaireCondition.Launches(2),
-            OwlQuestionnaireCondition.Launches(5),
+        val both = PulseQuestionnaireTrigger.whenAll(
+            PulseQuestionnaireCondition.Launches(2),
+            PulseQuestionnaireCondition.Launches(5),
         )
         assertFalse(both.isSatisfied(snap)) // second condition fails → ANDed false
 
-        val ok = OwlQuestionnaireTrigger.whenAll(OwlQuestionnaireCondition.Launches(2))
+        val ok = PulseQuestionnaireTrigger.whenAll(PulseQuestionnaireCondition.Launches(2))
         assertTrue(ok.isSatisfied(snap))
 
-        assertFalse(OwlQuestionnaireTrigger.manual.isSatisfied(snap))
-        assertTrue(OwlQuestionnaireTrigger.afterLaunch.isSatisfied(snap))
-        assertTrue(OwlQuestionnaireTrigger.afterLaunches(3).isSatisfied(snap))
+        assertFalse(PulseQuestionnaireTrigger.manual.isSatisfied(snap))
+        assertTrue(PulseQuestionnaireTrigger.afterLaunch.isSatisfied(snap))
+        assertTrue(PulseQuestionnaireTrigger.afterLaunches(3).isSatisfied(snap))
     }
 
     @Test
     fun ineligibleReasonMapsFromWire() {
         assertEquals(
-            OwlQuestionnaireIneligibleReason.ALREADY_RESPONDED,
-            OwlQuestionnaireIneligibleReason.fromWire("already_responded"),
+            PulseQuestionnaireIneligibleReason.ALREADY_RESPONDED,
+            PulseQuestionnaireIneligibleReason.fromWire("already_responded"),
         )
         assertEquals(
-            OwlQuestionnaireIneligibleReason.GLOBALLY_DISMISSED,
-            OwlQuestionnaireIneligibleReason.fromWire("globally_dismissed"),
+            PulseQuestionnaireIneligibleReason.GLOBALLY_DISMISSED,
+            PulseQuestionnaireIneligibleReason.fromWire("globally_dismissed"),
         )
-        assertNull(OwlQuestionnaireIneligibleReason.fromWire("nonsense"))
-        assertNull(OwlQuestionnaireIneligibleReason.fromWire(null))
+        assertNull(PulseQuestionnaireIneligibleReason.fromWire("nonsense"))
+        assertNull(PulseQuestionnaireIneligibleReason.fromWire(null))
     }
 }

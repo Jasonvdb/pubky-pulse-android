@@ -3,7 +3,7 @@ package org.pubky.pulse.android
 import android.util.Log
 
 /**
- * Mirrors the Swift `Owl.printToConsole` developer-console echo. Swift prints to
+ * Mirrors the Swift `Pulse.printToConsole` developer-console echo. Swift prints to
  * stdout via `print`; the Android analog is Logcat ([android.util.Log]) under
  * the [TAG] tag, with the level mapped to the matching Logcat priority. The
  * human-readable line is byte-identical to Swift's: a `🦉` prefix, a fixed-width
@@ -20,12 +20,12 @@ import android.util.Log
  * The level→tag mapping (`INFO `, `DEBUG`, `WARN `, `ERROR`) is padded to 5
  * chars so columns align, exactly as Swift's `switch`.
  *
- * Extracted into its own object (rather than a private `Owl` method like Swift)
+ * Extracted into its own object (rather than a private `Pulse` method like Swift)
  * so it can be unit-tested for the message-rewriting logic without touching the
  * Logcat sink — [format] is pure, [print] is the side-effecting wrapper.
  */
 internal object ConsoleLogger {
-    const val TAG: String = "Owlmetry"
+    const val TAG: String = "PubkyPulse"
 
     private const val STEP_PREFIX = "step:"
     private const val LEGACY_TRACK_PREFIX = "track:" // Legacy prefix from older SDK versions
@@ -39,17 +39,17 @@ internal object ConsoleLogger {
      */
     fun format(
         message: String,
-        level: OwlLogLevel,
+        level: PulseLogLevel,
         attributes: Map<String, String>?,
     ): String? {
         if (message.startsWith(SDK_PREFIX)) return null
         if (message.startsWith(METRIC_PREFIX) && message.endsWith(":start")) return null
 
         val tag = when (level) {
-            OwlLogLevel.INFO -> "INFO "
-            OwlLogLevel.DEBUG -> "DEBUG"
-            OwlLogLevel.WARN -> "WARN "
-            OwlLogLevel.ERROR -> "ERROR"
+            PulseLogLevel.INFO -> "INFO "
+            PulseLogLevel.DEBUG -> "DEBUG"
+            PulseLogLevel.WARN -> "WARN "
+            PulseLogLevel.ERROR -> "ERROR"
         }
 
         val displayMessage = when {
@@ -87,15 +87,15 @@ internal object ConsoleLogger {
      */
     fun print(
         message: String,
-        level: OwlLogLevel,
+        level: PulseLogLevel,
         attributes: Map<String, String>?,
     ) {
         val line = format(message, level, attributes) ?: return
         when (level) {
-            OwlLogLevel.INFO -> Log.i(TAG, line)
-            OwlLogLevel.DEBUG -> Log.d(TAG, line)
-            OwlLogLevel.WARN -> Log.w(TAG, line)
-            OwlLogLevel.ERROR -> Log.e(TAG, line)
+            PulseLogLevel.INFO -> Log.i(TAG, line)
+            PulseLogLevel.DEBUG -> Log.d(TAG, line)
+            PulseLogLevel.WARN -> Log.w(TAG, line)
+            PulseLogLevel.ERROR -> Log.e(TAG, line)
         }
     }
 }

@@ -10,8 +10,8 @@ import java.util.Locale
  * where Android genuinely diverges from iOS (documented inline + in PR notes).
  */
 public data class DeviceInfo(
-    /** Always [OwlPlatform.ANDROID]; serializes as `environment` = "android". */
-    public val platform: OwlPlatform,
+    /** Always [PulsePlatform.ANDROID]; serializes as `environment` = "android". */
+    public val platform: PulsePlatform,
     public val osVersion: String,
     public val appVersion: String?,
     public val buildNumber: String?,
@@ -68,7 +68,7 @@ public data class DeviceInfo(
             val buildNumber = pkg?.let { resolveBuildNumber(it) }
 
             return DeviceInfo(
-                platform = OwlPlatform.ANDROID,
+                platform = PulsePlatform.ANDROID,
                 osVersion = formatOsVersion(),
                 appVersion = appVersion,
                 buildNumber = buildNumber,

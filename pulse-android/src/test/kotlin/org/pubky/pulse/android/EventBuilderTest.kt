@@ -10,7 +10,7 @@ import java.util.Date
 class EventBuilderTest {
 
     private val device = DeviceInfo(
-        platform = OwlPlatform.ANDROID,
+        platform = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.0.0",
         buildNumber = "7",
@@ -25,7 +25,7 @@ class EventBuilderTest {
         message: String = "hi",
     ) = EventBuilder.build(
         message = message,
-        level = OwlLogLevel.INFO,
+        level = PulseLogLevel.INFO,
         screenName = "Home",
         customAttributes = attrs,
         userId = "owl_anon_1",
@@ -58,8 +58,8 @@ class EventBuilderTest {
     @Test
     fun stampsSdkIdentityFromVersion() {
         val event = build()
-        assertEquals(OwlmetryVersion.NAME, event.sdkName)
-        assertEquals(OwlmetryVersion.CURRENT, event.sdkVersion)
+        assertEquals(PubkyPulseVersion.NAME, event.sdkName)
+        assertEquals(PubkyPulseVersion.CURRENT, event.sdkVersion)
     }
 
     @Test
@@ -93,7 +93,7 @@ class EventBuilderTest {
     fun trimsLongCustomAttributeValueButHonorsErrorStackOverride() {
         val event = EventBuilder.build(
             message = "m",
-            level = OwlLogLevel.ERROR,
+            level = PulseLogLevel.ERROR,
             screenName = null,
             customAttributes = mapOf(
                 "big" to "y".repeat(500),

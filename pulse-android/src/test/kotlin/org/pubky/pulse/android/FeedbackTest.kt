@@ -22,11 +22,11 @@ import java.util.concurrent.CopyOnWriteArrayList
  * Feedback API parity tests, mirroring the Swift `FeedbackTests`:
  *  - [EventTransport.submitFeedback] is a one-shot POST to `/v1/feedback`: it
  *    parses `{ id, created_at }` into a receipt on 2xx, returns a typed
- *    [OwlFeedbackError.ServerError] (with the body verbatim) on non-2xx, a
- *    [OwlFeedbackError.TransportFailure] when the HTTP client throws, and does
+ *    [PulseFeedbackError.ServerError] (with the body verbatim) on non-2xx, a
+ *    [PulseFeedbackError.TransportFailure] when the HTTP client throws, and does
  *    **not** retry on 5xx (single attempt — unlike ingest).
- *  - [Owl.sendFeedback] throws [OwlFeedbackError.EmptyMessage] for a blank
- *    message before any network call, [OwlFeedbackError.NotConfigured] before
+ *  - [Pulse.sendFeedback] throws [PulseFeedbackError.EmptyMessage] for a blank
+ *    message before any network call, [PulseFeedbackError.NotConfigured] before
  *    configure, and on success returns the receipt + emits an
  *    `sdk:feedback_submitted` audit event tagged `has_email`/`has_name`.
  *  - the wire body carries the trimmed message, contact details (omitted when
@@ -90,20 +90,20 @@ class FeedbackTest {
 
     @Before
     fun setUp() {
-        Owl.resetForTesting()
+        Pulse.resetForTesting()
         http = RecordingHttpClient()
-        Owl.httpClientOverrideForTesting = http
+        Pulse.httpClientOverrideForTesting = http
         IdentityStore(context).clearUserId()
     }
 
     @After
     fun tearDown() {
-        Owl.resetForTesting()
-        Owl.httpClientOverrideForTesting = null
+        Pulse.resetForTesting()
+        Pulse.httpClientOverrideForTesting = null
     }
 
     private fun configure() {
-        Owl.configure(
+        Pulse.configure(
             context = context,
             endpoint = "https://ingest.example.com",
             apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -122,7 +122,7 @@ class FeedbackTest {
         }
     }
 
-    // ---- EventTransport.submitFeedback (transport-level, no Owl) ----
+    // ---- EventTransport.submitFeedback (transport-level, no Pulse) ----
 
     private fun transport(http: HttpClient): EventTransport {
         val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
@@ -185,8 +185,8 @@ class FeedbackTest {
 
         assertTrue(result is FeedbackResult.Failure)
         val error = (result as FeedbackResult.Failure).error
-        assertTrue(error is OwlFeedbackError.ServerError)
-        val server = error as OwlFeedbackError.ServerError
+        assertTrue(error is PulseFeedbackError.ServerError)
+        val server = error as PulseFeedbackError.ServerError
         assertEquals(422, server.statusCode)
         assertEquals("""{"error":"message too long"}""", server.body)
     }
@@ -198,7 +198,7 @@ class FeedbackTest {
         val result = tx.submitFeedback(feedbackBody())
 
         assertTrue(result is FeedbackResult.Failure)
-        assertTrue((result as FeedbackResult.Failure).error is OwlFeedbackError.TransportFailure)
+        assertTrue((result as FeedbackResult.Failure).error is PulseFeedbackError.TransportFailure)
     }
 
     @Test
@@ -222,15 +222,15 @@ class FeedbackTest {
         assertFalse("email omitted when null", body.has("submitter_email"))
     }
 
-    // ---- Owl.sendFeedback (public API) ----
+    // ---- Pulse.sendFeedback (public API) ----
 
     @Test
     fun `sendFeedback throws EmptyMessage for a blank message`() = runBlocking {
         configure()
         try {
-            Owl.sendFeedback("   \n  ")
+            Pulse.sendFeedback("   \n  ")
             fail("expected EmptyMessage")
-        } catch (e: OwlFeedbackError.EmptyMessage) {
+        } catch (e: PulseFeedbackError.EmptyMessage) {
             // expected
         }
         assertEquals("no network call for an empty message", 0, http.feedbackRequests().size)
@@ -239,9 +239,9 @@ class FeedbackTest {
     @Test
     fun `sendFeedback throws NotConfigured before configure`() = runBlocking {
         try {
-            Owl.sendFeedback("hi there")
+            Pulse.sendFeedback("hi there")
             fail("expected NotConfigured")
-        } catch (e: OwlFeedbackError.NotConfigured) {
+        } catch (e: PulseFeedbackError.NotConfigured) {
             // expected
         }
     }
@@ -249,7 +249,7 @@ class FeedbackTest {
     @Test
     fun `sendFeedback returns the receipt and trims the message`() = runBlocking {
         configure()
-        val receipt = Owl.sendFeedback("  please add dark mode  ")
+        val receipt = Pulse.sendFeedback("  please add dark mode  ")
 
         assertEquals("fb_123", receipt.id)
         val body = http.feedbackBodies().single()
@@ -264,7 +264,7 @@ class FeedbackTest {
     @Test
     fun `sendFeedback carries trimmed contact details`() = runBlocking {
         configure()
-        Owl.sendFeedback(message = "great app", name = "  Ada  ", email = " ada@example.com ")
+        Pulse.sendFeedback(message = "great app", name = "  Ada  ", email = " ada@example.com ")
 
         val body = http.feedbackBodies().single()
         assertEquals("Ada", body.getString("submitter_name"))
@@ -274,7 +274,7 @@ class FeedbackTest {
     @Test
     fun `sendFeedback drops blank contact details`() = runBlocking {
         configure()
-        Owl.sendFeedback(message = "great app", name = "   ", email = "")
+        Pulse.sendFeedback(message = "great app", name = "   ", email = "")
 
         val body = http.feedbackBodies().single()
         assertFalse(body.has("submitter_name"))
@@ -284,11 +284,11 @@ class FeedbackTest {
     @Test
     fun `sendFeedback emits an audit event with has_email and has_name`() = runBlocking {
         configure()
-        Owl.sendFeedback(message = "love it", name = "Ada", email = "ada@example.com")
+        Pulse.sendFeedback(message = "love it", name = "Ada", email = "ada@example.com")
 
         // The audit event is enqueued through the normal log pipeline; force a
         // drain via setUser (claim → flushAll), then poll for the ingest POST.
-        Owl.setUser("real-user-${System.nanoTime()}")
+        Pulse.setUser("real-user-${System.nanoTime()}")
         pollUntil(5_000) {
             http.ingestEvents().any { it.optString("message") == "sdk:feedback_submitted" }
         }
@@ -303,9 +303,9 @@ class FeedbackTest {
     @Test
     fun `sendFeedback audit event flags missing contact details`() = runBlocking {
         configure()
-        Owl.sendFeedback(message = "anonymous feedback")
+        Pulse.sendFeedback(message = "anonymous feedback")
 
-        Owl.setUser("real-user-${System.nanoTime()}")
+        Pulse.setUser("real-user-${System.nanoTime()}")
         pollUntil(5_000) {
             http.ingestEvents().any { it.optString("message") == "sdk:feedback_submitted" }
         }
@@ -321,14 +321,14 @@ class FeedbackTest {
         configure()
         http.feedbackScript.add(HttpResponse(500, "boom"))
         try {
-            Owl.sendFeedback("this will fail")
+            Pulse.sendFeedback("this will fail")
             fail("expected ServerError")
-        } catch (e: OwlFeedbackError.ServerError) {
+        } catch (e: PulseFeedbackError.ServerError) {
             assertEquals(500, e.statusCode)
         }
 
         // No audit event for a failed submission.
-        Owl.setUser("real-user-${System.nanoTime()}")
+        Pulse.setUser("real-user-${System.nanoTime()}")
         pollUntil(1_000) { false } // let any stray drain settle
         assertTrue(
             "no feedback audit on failure",
@@ -336,47 +336,47 @@ class FeedbackTest {
         )
     }
 
-    // ---- OwlFeedbackError + receipt parsing ----
+    // ---- PulseFeedbackError + receipt parsing ----
 
     @Test
-    fun `OwlFeedbackError messages mirror the Swift errorDescription strings`() {
+    fun `PulseFeedbackError messages mirror the Swift errorDescription strings`() {
         assertEquals(
-            "Owlmetry is not configured. Call Owl.configure(...) before sending feedback.",
-            OwlFeedbackError.NotConfigured.message,
+            "Pubky Pulse is not configured. Call Pulse.configure(...) before sending feedback.",
+            PulseFeedbackError.NotConfigured.message,
         )
-        assertEquals("Feedback message is empty.", OwlFeedbackError.EmptyMessage.message)
+        assertEquals("Feedback message is empty.", PulseFeedbackError.EmptyMessage.message)
         assertEquals(
             "Server returned 500: boom",
-            OwlFeedbackError.ServerError(500, "boom").message,
+            PulseFeedbackError.ServerError(500, "boom").message,
         )
         assertEquals(
             "Server returned 500",
-            OwlFeedbackError.ServerError(500, null).message,
+            PulseFeedbackError.ServerError(500, null).message,
         )
         assertEquals(
             "Server returned 500",
-            OwlFeedbackError.ServerError(500, "").message,
+            PulseFeedbackError.ServerError(500, "").message,
         )
-        assertEquals("offline", OwlFeedbackError.TransportFailure("offline").message)
+        assertEquals("offline", PulseFeedbackError.TransportFailure("offline").message)
     }
 
     @Test
-    fun `OwlFeedbackReceipt parses ISO8601 created_at and falls back to now on garbage`() {
-        val good = OwlFeedbackReceipt.fromJson(
+    fun `PulseFeedbackReceipt parses ISO8601 created_at and falls back to now on garbage`() {
+        val good = PulseFeedbackReceipt.fromJson(
             JSONObject("""{"id":"a","created_at":"2026-06-04T12:34:56.789Z"}"""),
         )
         assertEquals("a", good.id)
         // 2026-06-04T12:34:56.789Z == 1780576496789 ms.
         assertEquals(1780576496789L, good.createdAt.time)
 
-        val garbage = OwlFeedbackReceipt.fromJson(JSONObject("""{"id":"b","created_at":"not-a-date"}"""))
+        val garbage = PulseFeedbackReceipt.fromJson(JSONObject("""{"id":"b","created_at":"not-a-date"}"""))
         assertEquals("b", garbage.id)
         assertNotNull(garbage.createdAt) // fell back to "now"
     }
 
     @Test
-    fun `OwlFeedbackReceipt tolerates a created_at without fractional seconds`() {
-        val receipt = OwlFeedbackReceipt.fromJson(
+    fun `PulseFeedbackReceipt tolerates a created_at without fractional seconds`() {
+        val receipt = PulseFeedbackReceipt.fromJson(
             JSONObject("""{"id":"c","created_at":"2026-06-04T12:34:56Z"}"""),
         )
         assertEquals(1780576496000L, receipt.createdAt.time)

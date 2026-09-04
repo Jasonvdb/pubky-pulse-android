@@ -26,7 +26,7 @@ class ConsumerProguardRulesTest {
 
     @Test
     fun keepRulesNameTheRuntimeSdkPackage() {
-        val sdkPackage = Owl::class.java.`package`!!.name
+        val sdkPackage = Pulse::class.java.`package`!!.name
         assertEquals("org.pubky.pulse.android", sdkPackage)
         assertTrue("expected -keep rules in consumer-rules.pro", rules.isNotEmpty())
         for (rule in rules) {
@@ -42,7 +42,7 @@ class ConsumerProguardRulesTest {
     fun keepRulesCoverTheEntrypointsAndTheWholePackage() {
         val targets = rules.map { it.substringAfter("class ").trim().substringBefore(' ') }
         assertTrue("no wildcard rule covering the whole SDK package", targets.contains("org.pubky.pulse.android.**"))
-        assertTrue("Owl entrypoint is not kept", targets.contains(Owl::class.java.name))
-        assertTrue("OwlConfiguration is not kept", targets.contains(OwlConfiguration::class.java.name))
+        assertTrue("Pulse entrypoint is not kept", targets.contains(Pulse::class.java.name))
+        assertTrue("PulseConfiguration is not kept", targets.contains(PulseConfiguration::class.java.name))
     }
 }

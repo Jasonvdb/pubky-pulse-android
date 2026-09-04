@@ -23,7 +23,7 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Batches, buffers, retries, and POSTs events to the Owlmetry ingest API. The
+ * Batches, buffers, retries, and POSTs events to the Pubky Pulse ingest API. The
  * Android analog of the Swift SDK's `EventTransport` actor.
  *
  * Swift's `EventTransport` is an `actor` (serialized access to `buffer`), with a
@@ -81,7 +81,7 @@ internal class EventTransport(
     private val sendDrainContinuations = ArrayList<Continuation<Unit>>()
 
     companion object {
-        private const val TAG = "Owlmetry.transport"
+        private const val TAG = "PubkyPulse.transport"
 
         private const val BATCH_SIZE = 20
         private const val MAX_BUFFER_SIZE = 10_000
@@ -280,20 +280,20 @@ internal class EventTransport(
      * One-shot synchronous feedback submission. Mirrors Swift's
      * `submitFeedback(_:)`: encodes the body, POSTs it **once** (no retry, no
      * offline queueing — the caller handles errors and decides whether to retry),
-     * and on 2xx parses `{ id, created_at }` into an [OwlFeedbackReceipt]. Unlike
+     * and on 2xx parses `{ id, created_at }` into a [PulseFeedbackReceipt]. Unlike
      * ingest, feedback is interactive: the user is staring at a spinner, so a
      * single attempt with a typed failure is the right contract rather than
      * silently retrying for 30s.
      *
      * Returns [FeedbackResult.Success] with the receipt, or [FeedbackResult.Failure]
-     * carrying a typed [OwlFeedbackError] (server non-2xx with the body verbatim,
+     * carrying a typed [PulseFeedbackError] (server non-2xx with the body verbatim,
      * or a transport/encode/decode failure).
      */
     suspend fun submitFeedback(payload: FeedbackRequestBody): FeedbackResult {
         val httpBody = runCatching { payload.toJsonString().toByteArray(Charsets.UTF_8) }
             .getOrElse {
                 return FeedbackResult.Failure(
-                    OwlFeedbackError.TransportFailure("encoding failed: ${it.message}"),
+                    PulseFeedbackError.TransportFailure("encoding failed: ${it.message}"),
                 )
             }
         val request = makeRequest(feedbackUrl, httpBody)
@@ -305,26 +305,26 @@ internal class EventTransport(
         response.onSuccess { http ->
             if (http.statusCode in 200..299) {
                 val receipt = runCatching {
-                    OwlFeedbackReceipt.fromJson(JSONObject(http.body ?: ""))
+                    PulseFeedbackReceipt.fromJson(JSONObject(http.body ?: ""))
                 }.getOrElse {
                     return FeedbackResult.Failure(
-                        OwlFeedbackError.TransportFailure("decode failed: ${it.message}"),
+                        PulseFeedbackError.TransportFailure("decode failed: ${it.message}"),
                     )
                 }
                 return FeedbackResult.Success(receipt)
             }
             return FeedbackResult.Failure(
-                OwlFeedbackError.ServerError(statusCode = http.statusCode, body = http.body),
+                PulseFeedbackError.ServerError(statusCode = http.statusCode, body = http.body),
             )
         }.onFailure { error ->
             return FeedbackResult.Failure(
-                OwlFeedbackError.TransportFailure(error.message ?: error.toString()),
+                PulseFeedbackError.TransportFailure(error.message ?: error.toString()),
             )
         }
 
         // Unreachable — onSuccess/onFailure both return — but the compiler can't
         // see that through the Result lambdas.
-        return FeedbackResult.Failure(OwlFeedbackError.TransportFailure("no response"))
+        return FeedbackResult.Failure(PulseFeedbackError.TransportFailure("no response"))
     }
 
     // MARK: - Questionnaires
@@ -354,7 +354,7 @@ internal class EventTransport(
         if (force) query.append("&force=true")
 
         val url = runCatching { URL(questionnaireUrl(slug).toString() + query.toString()) }
-            .getOrElse { return QuestionnaireFetchOutcome.Failure(OwlQuestionnaireError.TransportFailure("invalid URL")) }
+            .getOrElse { return QuestionnaireFetchOutcome.Failure(PulseQuestionnaireError.TransportFailure("invalid URL")) }
 
         val request = HttpRequest(
             url = url,
@@ -367,32 +367,32 @@ internal class EventTransport(
         )
 
         val response = withContext(ioDispatcher) { runCatching { httpClient.execute(request) } }
-            .getOrElse { return QuestionnaireFetchOutcome.Failure(OwlQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
+            .getOrElse { return QuestionnaireFetchOutcome.Failure(PulseQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
 
         if (response.statusCode == 404) {
-            return QuestionnaireFetchOutcome.Failure(OwlQuestionnaireError.SlugNotFound)
+            return QuestionnaireFetchOutcome.Failure(PulseQuestionnaireError.SlugNotFound)
         }
         if (response.statusCode !in 200..299) {
             return QuestionnaireFetchOutcome.Failure(
-                OwlQuestionnaireError.ServerError(response.statusCode, response.body),
+                PulseQuestionnaireError.ServerError(response.statusCode, response.body),
             )
         }
 
         val result = runCatching { parseFetchEnvelope(response.body) }
-            .getOrElse { return QuestionnaireFetchOutcome.Failure(OwlQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
+            .getOrElse { return QuestionnaireFetchOutcome.Failure(PulseQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
         return QuestionnaireFetchOutcome.Success(result)
     }
 
-    /** Decode the eligibility envelope into an [OwlQuestionnaireFetchResult]. */
-    private fun parseFetchEnvelope(body: String?): OwlQuestionnaireFetchResult {
+    /** Decode the eligibility envelope into a [PulseQuestionnaireFetchResult]. */
+    private fun parseFetchEnvelope(body: String?): PulseQuestionnaireFetchResult {
         val json = JSONObject(body ?: "")
         val eligible = json.optBoolean("eligible", false)
         val questionnaireJson = json.optJSONObject("questionnaire")
         if (eligible && questionnaireJson != null) {
-            val questionnaire = OwlQuestionnaire.fromJson(questionnaireJson)
+            val questionnaire = PulseQuestionnaire.fromJson(questionnaireJson)
             val inProgressJson = json.optJSONObject("in_progress")
             val draft = inProgressJson?.let {
-                OwlQuestionnaireDraft(
+                PulseQuestionnaireDraft(
                     responseId = it.optString("response_id"),
                     answers = hydrateDraftAnswers(
                         it.optJSONObject("answers") ?: JSONObject(),
@@ -400,11 +400,11 @@ internal class EventTransport(
                     ),
                 )
             }
-            return OwlQuestionnaireFetchResult(questionnaire = questionnaire, inProgress = draft)
+            return PulseQuestionnaireFetchResult(questionnaire = questionnaire, inProgress = draft)
         }
         // Ineligible — surface the reason for diagnostics.
-        val reason = OwlQuestionnaireIneligibleReason.fromWire(json.optStringOrNull("reason"))
-        return OwlQuestionnaireFetchResult(questionnaire = null, ineligibleReason = reason)
+        val reason = PulseQuestionnaireIneligibleReason.fromWire(json.optStringOrNull("reason"))
+        return PulseQuestionnaireFetchResult(questionnaire = null, ineligibleReason = reason)
     }
 
     /**
@@ -420,7 +420,7 @@ internal class EventTransport(
         slug: String,
         userId: String?,
         sessionId: String?,
-        answers: Map<String, OwlQuestionnaireAnswerValue>,
+        answers: Map<String, PulseQuestionnaireAnswerValue>,
         isComplete: Boolean,
         deviceInfo: DeviceInfo?,
         environment: String?,
@@ -434,8 +434,8 @@ internal class EventTransport(
             put("answers", encodeAnswers(answers))
             put("is_complete", isComplete)
             appVersion?.let { put("app_version", it) }
-            put("sdk_name", OwlmetryVersion.NAME)
-            put("sdk_version", OwlmetryVersion.CURRENT)
+            put("sdk_name", PubkyPulseVersion.NAME)
+            put("sdk_version", PubkyPulseVersion.CURRENT)
             environment?.let { put("environment", it) }
             deviceInfo?.deviceModel?.let { put("device_model", it) }
             deviceInfo?.osVersion?.let { put("os_version", it) }
@@ -443,33 +443,33 @@ internal class EventTransport(
         }
 
         val httpBody = runCatching { payload.toString().toByteArray(Charsets.UTF_8) }
-            .getOrElse { return QuestionnaireSaveOutcome.Failure(OwlQuestionnaireError.TransportFailure("encoding failed: ${it.message}")) }
+            .getOrElse { return QuestionnaireSaveOutcome.Failure(PulseQuestionnaireError.TransportFailure("encoding failed: ${it.message}")) }
 
         val request = makeRequest(questionnaireResponsesUrl(slug), httpBody)
         val response = withContext(ioDispatcher) { runCatching { httpClient.execute(request) } }
-            .getOrElse { return QuestionnaireSaveOutcome.Failure(OwlQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
+            .getOrElse { return QuestionnaireSaveOutcome.Failure(PulseQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
 
         if (response.statusCode in 200..299) {
             val receipt = runCatching {
                 val json = JSONObject(response.body ?: "")
-                OwlQuestionnaireReceipt(
+                PulseQuestionnaireReceipt(
                     id = json.optString("id"),
                     createdAt = QuestionnaireDates.parseOrNow(json.optStringOrNull("created_at")),
                     wasSubmitted = json.optBoolean("was_submitted", false),
                 )
-            }.getOrElse { return QuestionnaireSaveOutcome.Failure(OwlQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
+            }.getOrElse { return QuestionnaireSaveOutcome.Failure(PulseQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
             return QuestionnaireSaveOutcome.Success(receipt)
         }
         if (response.statusCode == 400) {
             return QuestionnaireSaveOutcome.Failure(
-                OwlQuestionnaireError.InvalidAnswers(response.body ?: "unknown"),
+                PulseQuestionnaireError.InvalidAnswers(response.body ?: "unknown"),
             )
         }
         if (response.statusCode == 404) {
-            return QuestionnaireSaveOutcome.Failure(OwlQuestionnaireError.SlugNotFound)
+            return QuestionnaireSaveOutcome.Failure(PulseQuestionnaireError.SlugNotFound)
         }
         return QuestionnaireSaveOutcome.Failure(
-            OwlQuestionnaireError.ServerError(response.statusCode, response.body),
+            PulseQuestionnaireError.ServerError(response.statusCode, response.body),
         )
     }
 
@@ -483,20 +483,20 @@ internal class EventTransport(
             put("user_id", userId)
         }
         val httpBody = runCatching { payload.toString().toByteArray(Charsets.UTF_8) }
-            .getOrElse { return QuestionnaireDismissOutcome.Failure(OwlQuestionnaireError.TransportFailure("encoding failed: ${it.message}")) }
+            .getOrElse { return QuestionnaireDismissOutcome.Failure(PulseQuestionnaireError.TransportFailure("encoding failed: ${it.message}")) }
 
         val request = makeRequest(questionnaireDismissUrl, httpBody)
         val response = withContext(ioDispatcher) { runCatching { httpClient.execute(request) } }
-            .getOrElse { return QuestionnaireDismissOutcome.Failure(OwlQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
+            .getOrElse { return QuestionnaireDismissOutcome.Failure(PulseQuestionnaireError.TransportFailure(it.message ?: it.toString())) }
 
         if (response.statusCode in 200..299) {
             val date = runCatching {
                 QuestionnaireDates.parseOrNow(JSONObject(response.body ?: "").optStringOrNull("dismissed_at"))
-            }.getOrElse { return QuestionnaireDismissOutcome.Failure(OwlQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
+            }.getOrElse { return QuestionnaireDismissOutcome.Failure(PulseQuestionnaireError.TransportFailure("decode failed: ${it.message}")) }
             return QuestionnaireDismissOutcome.Success(date)
         }
         return QuestionnaireDismissOutcome.Failure(
-            OwlQuestionnaireError.ServerError(response.statusCode, response.body),
+            PulseQuestionnaireError.ServerError(response.statusCode, response.body),
         )
     }
 
@@ -611,35 +611,35 @@ internal class EventTransport(
 
 /**
  * Outcome of a one-shot [EventTransport.submitFeedback] call. The Kotlin analog
- * of Swift's `Result<OwlFeedbackReceipt, OwlFeedbackError>` returned by
- * `submitFeedback`. Internal — [Owl.sendFeedback] unwraps this into a returned
- * receipt or a thrown [OwlFeedbackError].
+ * of Swift's `Result<PulseFeedbackReceipt, PulseFeedbackError>` returned by
+ * `submitFeedback`. Internal — [Pulse.sendFeedback] unwraps this into a returned
+ * receipt or a thrown [PulseFeedbackError].
  */
 internal sealed interface FeedbackResult {
-    data class Success(val receipt: OwlFeedbackReceipt) : FeedbackResult
-    data class Failure(val error: OwlFeedbackError) : FeedbackResult
+    data class Success(val receipt: PulseFeedbackReceipt) : FeedbackResult
+    data class Failure(val error: PulseFeedbackError) : FeedbackResult
 }
 
 /**
  * Outcome of [EventTransport.fetchQuestionnaire]. The Kotlin analog of Swift's
- * `Result<OwlQuestionnaireFetchResult, OwlQuestionnaireError>`. Internal — [Owl]
- * unwraps it into a returned result or a thrown [OwlQuestionnaireError].
+ * `Result<PulseQuestionnaireFetchResult, PulseQuestionnaireError>`. Internal — [Pulse]
+ * unwraps it into a returned result or a thrown [PulseQuestionnaireError].
  */
 internal sealed interface QuestionnaireFetchOutcome {
-    data class Success(val result: OwlQuestionnaireFetchResult) : QuestionnaireFetchOutcome
-    data class Failure(val error: OwlQuestionnaireError) : QuestionnaireFetchOutcome
+    data class Success(val result: PulseQuestionnaireFetchResult) : QuestionnaireFetchOutcome
+    data class Failure(val error: PulseQuestionnaireError) : QuestionnaireFetchOutcome
 }
 
 /** Outcome of [EventTransport.saveQuestionnaireResponse]. */
 internal sealed interface QuestionnaireSaveOutcome {
-    data class Success(val receipt: OwlQuestionnaireReceipt) : QuestionnaireSaveOutcome
-    data class Failure(val error: OwlQuestionnaireError) : QuestionnaireSaveOutcome
+    data class Success(val receipt: PulseQuestionnaireReceipt) : QuestionnaireSaveOutcome
+    data class Failure(val error: PulseQuestionnaireError) : QuestionnaireSaveOutcome
 }
 
 /** Outcome of [EventTransport.submitQuestionnaireDismiss]. */
 internal sealed interface QuestionnaireDismissOutcome {
     data class Success(val dismissedAt: java.util.Date) : QuestionnaireDismissOutcome
-    data class Failure(val error: OwlQuestionnaireError) : QuestionnaireDismissOutcome
+    data class Failure(val error: PulseQuestionnaireError) : QuestionnaireDismissOutcome
 }
 
 /** A minimal HTTP request — the framework-agnostic input to [HttpClient]. */

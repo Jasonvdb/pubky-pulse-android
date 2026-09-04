@@ -20,7 +20,7 @@ import java.util.UUID
 class EventBuilderIdentityTest {
 
     private val device = DeviceInfo(
-        platform = OwlPlatform.ANDROID,
+        platform = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "2.0.0",
         buildNumber = "9",
@@ -32,7 +32,7 @@ class EventBuilderIdentityTest {
 
     private fun build(
         message: String = "user tapped buy",
-        level: OwlLogLevel = OwlLogLevel.ERROR,
+        level: PulseLogLevel = PulseLogLevel.ERROR,
         attrs: Map<String, String>? = mapOf("plan" to "pro"),
     ) = EventBuilder.build(
         message = message,
@@ -51,15 +51,15 @@ class EventBuilderIdentityTest {
     )
 
     @Test
-    fun stampsSdkNameAsOwlmetryAndroid() {
+    fun stampsSdkNameOnEveryEvent() {
         assertEquals("owlmetry-android", build().sdkName)
         // And the constant the builder reads is the same value.
-        assertEquals("owlmetry-android", OwlmetryVersion.NAME)
+        assertEquals("owlmetry-android", PubkyPulseVersion.NAME)
     }
 
     @Test
     fun stampsSdkVersionFromVersionConstant() {
-        assertEquals(OwlmetryVersion.CURRENT, build().sdkVersion)
+        assertEquals(PubkyPulseVersion.CURRENT, build().sdkVersion)
     }
 
     @Test
@@ -81,8 +81,8 @@ class EventBuilderIdentityTest {
 
     @Test
     fun carriesGivenLevelAndMessage() {
-        val event = build(message = "boom", level = OwlLogLevel.WARN)
-        assertEquals(OwlLogLevel.WARN, event.level)
+        val event = build(message = "boom", level = PulseLogLevel.WARN)
+        assertEquals(PulseLogLevel.WARN, event.level)
         assertEquals("boom", event.message)
     }
 
@@ -106,7 +106,7 @@ class EventBuilderIdentityTest {
         assertEquals("sess-xyz", event.sessionId)
         assertEquals("owl_anon_1", event.userId)
         assertEquals(false, event.isDev)
-        assertEquals(OwlPlatform.ANDROID, event.environment)
+        assertEquals(PulsePlatform.ANDROID, event.environment)
     }
 
     @Test
@@ -115,7 +115,7 @@ class EventBuilderIdentityTest {
         // the identity + reserved attributes intact (not just on the model).
         val json = build().toJson()
         assertEquals("owlmetry-android", json.getString("sdk_name"))
-        assertEquals(OwlmetryVersion.CURRENT, json.getString("sdk_version"))
+        assertEquals(PubkyPulseVersion.CURRENT, json.getString("sdk_version"))
         assertEquals("error", json.getString("level"))
         assertEquals("user tapped buy", json.getString("message"))
         assertEquals("Checkout.kt:onPurchase:88", json.getString("source_module"))

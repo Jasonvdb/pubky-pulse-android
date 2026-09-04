@@ -23,12 +23,12 @@ class LogEventRoundTripTest {
         clientEventId = "11111111-2222-3333-4444-555555555555",
         sessionId = "sess-abc",
         userId = "owl_anon_deadbeef",
-        level = OwlLogLevel.WARN,
+        level = PulseLogLevel.WARN,
         sourceModule = "Main.kt:onCreate:42",
         message = "hello world",
         screenName = "Home",
         customAttributes = linkedMapOf("color" to "blue", "_file" to "Main.kt", "_line" to "42"),
-        environment = OwlPlatform.ANDROID,
+        environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
         sdkName = "owlmetry-android",
@@ -55,12 +55,12 @@ class LogEventRoundTripTest {
             clientEventId = "id-1",
             sessionId = "sess-1",
             userId = null,
-            level = OwlLogLevel.INFO,
+            level = PulseLogLevel.INFO,
             sourceModule = null,
             message = "m",
             screenName = null,
             customAttributes = null,
-            environment = OwlPlatform.ANDROID,
+            environment = PulsePlatform.ANDROID,
             osVersion = null,
             appVersion = null,
             sdkName = null,
@@ -95,7 +95,7 @@ class LogEventRoundTripTest {
         obj.put("level", "fatal")          // not a known wire value
         obj.put("environment", "ios")      // not Android's wire value
         val decoded = LogEvent.fromJson(obj)
-        assertEquals(OwlLogLevel.INFO, decoded.level)
-        assertEquals(OwlPlatform.ANDROID, decoded.environment)
+        assertEquals(PulseLogLevel.INFO, decoded.level)
+        assertEquals(PulsePlatform.ANDROID, decoded.environment)
     }
 }

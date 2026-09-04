@@ -24,12 +24,12 @@ class DuplicateFilterTest {
         clientEventId = "id",
         sessionId = "s",
         userId = null,
-        level = OwlLogLevel.INFO,
+        level = PulseLogLevel.INFO,
         sourceModule = null,
         message = message,
         screenName = screenName,
         customAttributes = attributes,
-        environment = OwlPlatform.ANDROID,
+        environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
         sdkName = "owlmetry-android",
@@ -140,8 +140,8 @@ class DuplicateFilterTest {
         // The composite key leads with `level.wire`, so the same message at two
         // levels are independent dedup buckets (mirrors Swift's key prefix).
         val filter = DuplicateFilter()
-        val info = stub("same").copy(level = OwlLogLevel.INFO)
-        val error = stub("same").copy(level = OwlLogLevel.ERROR)
+        val info = stub("same").copy(level = PulseLogLevel.INFO)
+        val error = stub("same").copy(level = PulseLogLevel.ERROR)
         repeat(10) { filter.shouldAllow(info) }
         assertTrue(filter.shouldAllow(error))
         assertFalse(filter.shouldAllow(info))

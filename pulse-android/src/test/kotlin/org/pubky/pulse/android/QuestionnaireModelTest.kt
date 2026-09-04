@@ -40,7 +40,7 @@ class QuestionnaireModelTest {
 
     @Test
     fun decodesFullQuestionnaire() {
-        val q = OwlQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
+        val q = PulseQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
         assertEquals("q_1", q.id)
         assertEquals("post-onboarding", q.slug)
         assertEquals("Post Onboarding", q.name)
@@ -48,20 +48,20 @@ class QuestionnaireModelTest {
         assertEquals(1, q.schema.version)
         assertEquals(5, q.schema.questions.size)
 
-        val text = q.schema.questions[0] as OwlQuestionnaireQuestion.Text
+        val text = q.schema.questions[0] as PulseQuestionnaireQuestion.Text
         assertEquals("q_text", text.id)
         assertTrue(text.required)
         assertTrue(text.multiline)
         assertEquals("Type here", text.placeholder)
 
-        val single = q.schema.questions[1] as OwlQuestionnaireQuestion.SingleChoice
+        val single = q.schema.questions[1] as PulseQuestionnaireQuestion.SingleChoice
         assertEquals(2, single.options.size)
         assertEquals("Apple", single.options[0].label)
 
-        val rating = q.schema.questions[3] as OwlQuestionnaireQuestion.Rating
+        val rating = q.schema.questions[3] as PulseQuestionnaireQuestion.Rating
         assertEquals(5, rating.scale)
 
-        assertTrue(q.schema.questions[4] is OwlQuestionnaireQuestion.Nps)
+        assertTrue(q.schema.questions[4] is PulseQuestionnaireQuestion.Nps)
     }
 
     @Test
@@ -69,27 +69,27 @@ class QuestionnaireModelTest {
         val json = JSONObject(
             """{ "id": "i", "slug": "s", "name": "n", "schema": { "version": 1, "questions": [] } }""",
         )
-        val q = OwlQuestionnaire.fromJson(json)
+        val q = PulseQuestionnaire.fromJson(json)
         assertNull(q.description)
     }
 
-    @Test(expected = OwlQuestionnaireParseException::class)
+    @Test(expected = PulseQuestionnaireParseException::class)
     fun unknownQuestionTypeThrows() {
         val json = JSONObject(
             """{ "id": "i", "slug": "s", "name": "n",
                   "schema": { "version": 1, "questions": [ { "type": "slider", "id": "x", "title": "t", "required": false } ] } }""",
         )
-        OwlQuestionnaire.fromJson(json)
+        PulseQuestionnaire.fromJson(json)
     }
 
     @Test
     fun encodesAnswersToWireShape() {
-        val answers = linkedMapOf<String, OwlQuestionnaireAnswerValue>(
-            "q_text" to OwlQuestionnaireAnswerValue.TextValue("hello"),
-            "q_single" to OwlQuestionnaireAnswerValue.ChoiceValue("a"),
-            "q_multi" to OwlQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")),
-            "q_rating" to OwlQuestionnaireAnswerValue.RatingValue(4),
-            "q_nps" to OwlQuestionnaireAnswerValue.NpsValue(9),
+        val answers = linkedMapOf<String, PulseQuestionnaireAnswerValue>(
+            "q_text" to PulseQuestionnaireAnswerValue.TextValue("hello"),
+            "q_single" to PulseQuestionnaireAnswerValue.ChoiceValue("a"),
+            "q_multi" to PulseQuestionnaireAnswerValue.ChoicesValue(listOf("x", "y")),
+            "q_rating" to PulseQuestionnaireAnswerValue.RatingValue(4),
+            "q_nps" to PulseQuestionnaireAnswerValue.NpsValue(9),
         )
         val obj = encodeAnswers(answers)
         assertEquals("hello", obj.getString("q_text"))
@@ -102,29 +102,29 @@ class QuestionnaireModelTest {
 
     @Test
     fun hydrateDraftAnswersProjectsByQuestionType() {
-        val q = OwlQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
+        val q = PulseQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
         val raw = JSONObject(
             """{ "q_text": "draft text", "q_single": "b",
                   "q_multi": ["x"], "q_rating": 3, "q_nps": 7,
                   "q_unknown": "ignored" }""",
         )
         val hydrated = hydrateDraftAnswers(raw, q.schema)
-        assertEquals(OwlQuestionnaireAnswerValue.TextValue("draft text"), hydrated["q_text"])
-        assertEquals(OwlQuestionnaireAnswerValue.ChoiceValue("b"), hydrated["q_single"])
-        assertEquals(OwlQuestionnaireAnswerValue.ChoicesValue(listOf("x")), hydrated["q_multi"])
-        assertEquals(OwlQuestionnaireAnswerValue.RatingValue(3), hydrated["q_rating"])
-        assertEquals(OwlQuestionnaireAnswerValue.NpsValue(7), hydrated["q_nps"])
+        assertEquals(PulseQuestionnaireAnswerValue.TextValue("draft text"), hydrated["q_text"])
+        assertEquals(PulseQuestionnaireAnswerValue.ChoiceValue("b"), hydrated["q_single"])
+        assertEquals(PulseQuestionnaireAnswerValue.ChoicesValue(listOf("x")), hydrated["q_multi"])
+        assertEquals(PulseQuestionnaireAnswerValue.RatingValue(3), hydrated["q_rating"])
+        assertEquals(PulseQuestionnaireAnswerValue.NpsValue(7), hydrated["q_nps"])
         // Unknown keys (not in schema) are dropped.
         assertFalse(hydrated.containsKey("q_unknown"))
     }
 
     @Test
     fun hydrateDraftAnswersSkipsShapeMismatches() {
-        val q = OwlQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
+        val q = PulseQuestionnaire.fromJson(JSONObject(fullSchemaJson()))
         // q_rating expects an int but the draft has a string; drop it.
         val raw = JSONObject("""{ "q_rating": "not-an-int", "q_text": "ok" }""")
         val hydrated = hydrateDraftAnswers(raw, q.schema)
         assertFalse(hydrated.containsKey("q_rating"))
-        assertEquals(OwlQuestionnaireAnswerValue.TextValue("ok"), hydrated["q_text"])
+        assertEquals(PulseQuestionnaireAnswerValue.TextValue("ok"), hydrated["q_text"])
     }
 }

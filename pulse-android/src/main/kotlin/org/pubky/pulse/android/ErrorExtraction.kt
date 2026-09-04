@@ -4,7 +4,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 /**
- * Extracts structured fields from a [Throwable] for `Owl.error(Throwable, ...)`.
+ * Extracts structured fields from a [Throwable] for `Pulse.error(Throwable, ...)`.
  * Output is delivered as `_error_*` reserved custom attributes, which the server
  * reads for issue fingerprinting (`_error_type` becomes the fingerprint
  * discriminator) and dashboard display. Mirrors Swift's `ErrorExtraction`.
@@ -40,7 +40,7 @@ internal object ErrorExtraction {
     )
 
     /**
-     * @param error the value passed to `Owl.error(Throwable, ...)`.
+     * @param error the value passed to `Pulse.error(Throwable, ...)`.
      * @param userMessage optional caller-provided context. When non-blank it is
      *   used as the event message; otherwise one is derived from the error.
      */
@@ -50,7 +50,7 @@ internal object ErrorExtraction {
         // The OVERRIDABLE members of a caller-supplied Throwable (message /
         // localizedMessage / toString / cause / printStackTrace) can throw from a
         // hostile or buggy custom exception class, and this runs synchronously
-        // inside Owl.error(Throwable) on the caller's thread — so each of those is
+        // inside Pulse.error(Throwable) on the caller's thread — so each of those is
         // wrapped to keep extract() total. `javaClass.name` is a final intrinsic
         // (Object.getClass + Class.getName) that cannot be overridden or throw, so
         // it stays unwrapped and is the always-safe fallback. The SDK must never

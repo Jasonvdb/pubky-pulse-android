@@ -67,12 +67,12 @@ internal class LifecycleObserver(
             sawFirstStart = true
             return
         }
-        OwlQuestionnaireState.shared?.incrementForeground()
-        Owl.info("sdk:app_foregrounded")
+        PulseQuestionnaireState.shared?.incrementForeground()
+        Pulse.info("sdk:app_foregrounded")
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        Owl.info("sdk:app_backgrounded")
+        Pulse.info("sdk:app_backgrounded")
         scope.launch {
             transport.flushAll()
             // Durable backstop: anything appended during the flush (including the

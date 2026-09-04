@@ -15,8 +15,9 @@ import java.io.File
  * failure). The Android analog of the Swift SDK's `OfflineQueue` actor.
  *
  * Swift's `OfflineQueue` is an `actor` serializing all access, persisting to
- * `<AppSupport>/Owlmetry/offline_queue.json` with a 1-second debounced write,
- * capped at 10 000 events (oldest dropped first). We mirror that surface:
+ * `offline_queue.json` in its own app-support subdirectory with a 1-second
+ * debounced write, capped at 10 000 events (oldest dropped first). We mirror
+ * that surface:
  *  - a [Mutex] serializes mutation (the actor analog under the coroutines-only
  *    dependency rule),
  *  - persistence is a JSON array of [LogEvent]s (round-tripped via
@@ -45,7 +46,7 @@ internal class OfflineQueue(
         val dir = File(directory, "owlmetry")
         // mkdirs() can throw SecurityException under a restrictive SecurityManager
         // (it returns false for ordinary failures like disk-full). This runs
-        // synchronously on the caller's thread inside Owl.configure(), so a failed
+        // synchronously on the caller's thread inside Pulse.configure(), so a failed
         // or forbidden mkdir must degrade to a no-op queue — writeToDisk() and
         // loadFromDisk() are themselves runCatching-guarded — rather than crash
         // configure().

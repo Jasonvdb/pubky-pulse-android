@@ -39,15 +39,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import org.pubky.pulse.android.Owl
-import org.pubky.pulse.android.OwlAttachment
-import org.pubky.pulse.android.OwlQuestionnaire
-import org.pubky.pulse.android.OwlQuestionnaireDraft
-import org.pubky.pulse.android.compose.OwlFeedbackActionsPlacement
-import org.pubky.pulse.android.compose.OwlFeedbackView
-import org.pubky.pulse.android.compose.OwlQuestionnaireGate
-import org.pubky.pulse.android.compose.OwlQuestionnaireView
-import org.pubky.pulse.android.compose.owlScreen
+import org.pubky.pulse.android.Pulse
+import org.pubky.pulse.android.PulseAttachment
+import org.pubky.pulse.android.PulseQuestionnaire
+import org.pubky.pulse.android.PulseQuestionnaireDraft
+import org.pubky.pulse.android.compose.PulseFeedbackActionsPlacement
+import org.pubky.pulse.android.compose.PulseFeedbackView
+import org.pubky.pulse.android.compose.PulseQuestionnaireGate
+import org.pubky.pulse.android.compose.PulseQuestionnaireView
+import org.pubky.pulse.android.compose.pulseScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -72,9 +72,9 @@ private val GrayTint = Color(0xFF616161)
  *   · Attribution (N/A on Android) · Feedback · Questionnaires · Backend Demo
  *   · Event Log.
  *
- * The whole screen is wrapped in [OwlQuestionnaireGate] (the auto-trigger, the
- * analog of SwiftUI's `.owlQuestionnaire(...)` modifier), and the root column
- * carries [Modifier.owlScreen] = "Home" for automatic screen tracking.
+ * The whole screen is wrapped in [PulseQuestionnaireGate] (the auto-trigger, the
+ * analog of SwiftUI's `.pulseQuestionnaire(...)` modifier), and the root column
+ * carries [Modifier.pulseScreen] = "Home" for automatic screen tracking.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,8 +105,8 @@ fun DemoScreen() {
     var questionnaireShowsConsent by rememberSaveable { mutableStateOf(true) }
     var questionnaireForceShow by rememberSaveable { mutableStateOf(false) }
     var manualPresentationUsesConsent by remember { mutableStateOf(true) }
-    var manualQuestionnaire by remember { mutableStateOf<OwlQuestionnaire?>(null) }
-    var manualQuestionnaireInProgress by remember { mutableStateOf<OwlQuestionnaireDraft?>(null) }
+    var manualQuestionnaire by remember { mutableStateOf<PulseQuestionnaire?>(null) }
+    var manualQuestionnaireInProgress by remember { mutableStateOf<PulseQuestionnaireDraft?>(null) }
     var lastQuestionnaireId by remember { mutableStateOf<String?>(null) }
     var lastDismissDate by remember { mutableStateOf<Date?>(null) }
     // Re-read launch/foreground counters on each questionnaire action so the
@@ -115,13 +115,13 @@ fun DemoScreen() {
 
     // Record the "screen opened" metric once, like Swift's `.onAppear`.
     LaunchedEffect(Unit) {
-        Owl.recordMetric("demo_app_opened")
+        Pulse.recordMetric("demo_app_opened")
         appendLog("App opened — recorded demo_app_opened")
     }
 
     suspend fun loadAndPresentQuestionnaire() {
         try {
-            val result = Owl.fetchQuestionnaire(slug = questionnaireSlug)
+            val result = Pulse.fetchQuestionnaire(slug = questionnaireSlug)
             val q = result.questionnaire
             if (q != null) {
                 manualQuestionnaire = q
@@ -148,22 +148,22 @@ fun DemoScreen() {
         appendLog("— Full Demo Started —")
 
         // 1. info event
-        Owl.info("Demo started", screenName = "DemoScreen")
+        Pulse.info("Demo started", screenName = "DemoScreen")
         appendLog("[INFO] Demo started")
 
         // 2. record a metric
-        Owl.recordMetric("demo_full_test")
+        Pulse.recordMetric("demo_full_test")
         appendLog("[METRIC] demo_full_test")
 
         // 2b. lifecycle metric
-        val op = Owl.startOperation("demo-operation")
+        val op = Pulse.startOperation("demo-operation")
         appendLog("[METRIC] demo-operation:start")
         delay(500)
         op.complete(attributes = mapOf("result" to "success"))
         appendLog("[METRIC] demo-operation:complete")
 
         // 3. backend greet → 2 info events server-side
-        val greetResult = callBackend(path = "/api/greet", body = mapOf("name" to "OwlBot"))
+        val greetResult = callBackend(path = "/api/greet", body = mapOf("name" to "PulseBot"))
         appendLog("[BACKEND] greet: $greetResult")
 
         // 4. pause between backend calls
@@ -174,29 +174,29 @@ fun DemoScreen() {
         appendLog("[BACKEND] checkout: $checkoutResult")
 
         // 6. funnel demo: onboarding flow
-        Owl.step("welcome-screen"); appendLog("[STEP] welcome-screen")
+        Pulse.step("welcome-screen"); appendLog("[STEP] welcome-screen")
         delay(300)
-        Owl.step("create-account"); appendLog("[STEP] create-account")
+        Pulse.step("create-account"); appendLog("[STEP] create-account")
         delay(300)
-        Owl.step("complete-profile"); appendLog("[STEP] complete-profile")
+        Pulse.step("complete-profile"); appendLog("[STEP] complete-profile")
 
         // 7. user properties
-        Owl.setUserProperties(mapOf("plan" to "premium", "rc_subscriber" to "true"))
+        Pulse.setUserProperties(mapOf("plan" to "premium", "rc_subscriber" to "true"))
         appendLog("[PROPS] plan=premium, rc_subscriber=true")
         delay(500)
 
         // 8. error event for investigation
-        Owl.error("Simulated client crash", screenName = "DemoScreen")
+        Pulse.error("Simulated client crash", screenName = "DemoScreen")
         appendLog("[ERROR] Simulated client crash")
 
         appendLog("— Full Demo Complete —")
     }
 
     // The auto-trigger gate wraps the whole screen — the analog of SwiftUI's
-    // `.owlQuestionnaire(slug:trigger:...)` modifier on the NavigationStack.
-    OwlQuestionnaireGate(
+    // `.pulseQuestionnaire(slug:trigger:...)` modifier on the NavigationStack.
+    PulseQuestionnaireGate(
         slug = questionnaireSlug,
-        trigger = org.pubky.pulse.android.OwlQuestionnaireTrigger.afterLaunch,
+        trigger = org.pubky.pulse.android.PulseQuestionnaireTrigger.afterLaunch,
         showsConsent = questionnaireShowsConsent,
         isEligible = { questionnaireEligibleToggle },
         forceShow = questionnaireForceShow,
@@ -210,14 +210,14 @@ fun DemoScreen() {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .owlScreen("Home")
+                .pulseScreen("Home")
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
         ) {
             item {
                 Text(
-                    "Owlmetry Demo",
+                    "Pubky Pulse Demo",
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -253,19 +253,19 @@ fun DemoScreen() {
                         singleLine = true,
                     )
                     TintedButton("Info", BlueTint) {
-                        Owl.info(logMessage, screenName = "DemoScreen")
+                        Pulse.info(logMessage, screenName = "DemoScreen")
                         appendLog("[INFO] $logMessage")
                     }
                     TintedButton("Debug", GrayTint) {
-                        Owl.debug(logMessage, screenName = "DemoScreen")
+                        Pulse.debug(logMessage, screenName = "DemoScreen")
                         appendLog("[DEBUG] $logMessage")
                     }
                     TintedButton("Warn", Orange) {
-                        Owl.warn(logMessage, screenName = "DemoScreen")
+                        Pulse.warn(logMessage, screenName = "DemoScreen")
                         appendLog("[WARN] $logMessage")
                     }
                     TintedButton("Error", Red) {
-                        Owl.error(logMessage, screenName = "DemoScreen")
+                        Pulse.error(logMessage, screenName = "DemoScreen")
                         appendLog("[ERROR] $logMessage")
                     }
                 }
@@ -291,11 +291,11 @@ fun DemoScreen() {
                     TintedButton("Record Metric", Indigo) {
                         val attrs: Map<String, String?> =
                             if (customKey.isEmpty()) emptyMap() else mapOf(customKey to customValue)
-                        Owl.recordMetric("demo_custom_event", attributes = attrs)
+                        Pulse.recordMetric("demo_custom_event", attributes = attrs)
                         appendLog("[METRIC] demo_custom_event $attrs")
                     }
                     TintedButton("Simulate Conversion", Green) {
-                        val op = Owl.startOperation("photo-conversion", attributes = mapOf("input_format" to "heic"))
+                        val op = Pulse.startOperation("photo-conversion", attributes = mapOf("input_format" to "heic"))
                         appendLog("[METRIC] photo-conversion:start")
                         scope.launch {
                             delay(1_000)
@@ -304,7 +304,7 @@ fun DemoScreen() {
                         }
                     }
                     TintedButton("Simulate Failed Operation", Red) {
-                        val op = Owl.startOperation("photo-conversion", attributes = mapOf("input_format" to "raw"))
+                        val op = Pulse.startOperation("photo-conversion", attributes = mapOf("input_format" to "raw"))
                         appendLog("[METRIC] photo-conversion:start")
                         op.fail(error = "unsupported_format")
                         appendLog("[METRIC] photo-conversion:fail")
@@ -313,12 +313,12 @@ fun DemoScreen() {
                         // Synthesised bytes so the demo needs no real file — in
                         // real code you'd pass the actual file that failed.
                         val fakeInput = "fake broken image bytes — demo only".toByteArray()
-                        Owl.error(
+                        Pulse.error(
                             "photo conversion failed",
                             screenName = "DemoScreen",
                             attributes = mapOf("input_format" to "heic", "stage" to "decode"),
                             attachments = listOf(
-                                OwlAttachment.bytes(
+                                PulseAttachment.bytes(
                                     bytes = fakeInput,
                                     name = "broken-input.heic",
                                     contentType = "image/heic",
@@ -334,16 +334,16 @@ fun DemoScreen() {
             item {
                 SectionCard("Funnel Demo") {
                     TintedButton("1. Welcome Screen", Purple) {
-                        Owl.step("welcome-screen"); appendLog("[STEP] welcome-screen")
+                        Pulse.step("welcome-screen"); appendLog("[STEP] welcome-screen")
                     }
                     TintedButton("2. Create Account", Purple) {
-                        Owl.step("create-account"); appendLog("[STEP] create-account")
+                        Pulse.step("create-account"); appendLog("[STEP] create-account")
                     }
                     TintedButton("3. Complete Profile", Purple) {
-                        Owl.step("complete-profile"); appendLog("[STEP] complete-profile")
+                        Pulse.step("complete-profile"); appendLog("[STEP] complete-profile")
                     }
                     TintedButton("4. First Post", Purple) {
-                        Owl.step("first-post"); appendLog("[STEP] first-post")
+                        Pulse.step("first-post"); appendLog("[STEP] first-post")
                     }
                 }
             }
@@ -361,15 +361,15 @@ fun DemoScreen() {
                     )
                     TintedButton("Set User", Indigo, enabled = userId.isNotEmpty()) {
                         if (userId.isEmpty()) return@TintedButton
-                        Owl.setUser(userId)
+                        Pulse.setUser(userId)
                         appendLog("Set user: $userId")
                     }
                     TintedButton("Clear User", GrayTint) {
-                        Owl.clearUser()
+                        Pulse.clearUser()
                         appendLog("Cleared user (kept anon ID)")
                     }
                     TintedButton("Clear + New Anonymous ID", Red) {
-                        Owl.clearUser(newAnonymousId = true)
+                        Pulse.clearUser(newAnonymousId = true)
                         appendLog("Cleared user + new anonymous ID")
                     }
                 }
@@ -396,13 +396,13 @@ fun DemoScreen() {
                     )
                     TintedButton("Set Property", Indigo, enabled = customKey.isNotEmpty()) {
                         if (customKey.isEmpty()) return@TintedButton
-                        Owl.setUserProperties(mapOf(customKey to customValue))
+                        Pulse.setUserProperties(mapOf(customKey to customValue))
                         appendLog("[PROPS] $customKey = ${if (customValue.isEmpty()) "(deleted)" else customValue}")
                         customKey = ""
                         customValue = ""
                     }
                     TintedButton("Set Demo Properties", Purple) {
-                        Owl.setUserProperties(
+                        Pulse.setUserProperties(
                             mapOf(
                                 "plan" to "premium",
                                 "rc_subscriber" to "true",
@@ -448,9 +448,9 @@ fun DemoScreen() {
                     if (showFeedbackEmbedded) {
                         // Embedded usage: inline actions, no contact fields —
                         // mirrors the iOS embedded NavigationLink variant.
-                        OwlFeedbackView(
+                        PulseFeedbackView(
                             showsContactFields = false,
-                            actionsPlacement = OwlFeedbackActionsPlacement.INLINE,
+                            actionsPlacement = PulseFeedbackActionsPlacement.INLINE,
                             onSubmitted = { receipt ->
                                 lastFeedbackId = receipt.id
                                 appendLog("[FEEDBACK] sent id=${receipt.id}")
@@ -506,7 +506,7 @@ fun DemoScreen() {
                     TintedButton("Dismiss globally", Red) {
                         scope.launch {
                             try {
-                                val date = Owl.dismissQuestionnaires()
+                                val date = Pulse.dismissQuestionnaires()
                                 lastDismissDate = date
                                 appendLog("[QUESTIONNAIRE] dismissed globally at $date")
                             } catch (e: Throwable) {
@@ -515,8 +515,8 @@ fun DemoScreen() {
                         }
                     }
                     TintedButton("Reset everything for fresh test", Red) {
-                        Owl.debugClearShownQuestionnaires()
-                        Owl.clearUser(newAnonymousId = true)
+                        Pulse.debugClearShownQuestionnaires()
+                        Pulse.clearUser(newAnonymousId = true)
                         lastQuestionnaireId = null
                         lastDismissDate = null
                         counterTick++
@@ -528,16 +528,16 @@ fun DemoScreen() {
                     @Suppress("UNUSED_EXPRESSION") counterTick
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            "Launch count: ${Owl.launchCount}",
+                            "Launch count: ${Pulse.launchCount}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            "Foreground count: ${Owl.foregroundCount}",
+                            "Foreground count: ${Pulse.foregroundCount}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Owl.firstLaunchAt?.let { millis ->
+                        Pulse.firstLaunchAt?.let { millis ->
                             Text(
                                 "First launch: ${formatTimestamp(millis)}",
                                 style = MaterialTheme.typography.bodySmall,
@@ -573,7 +573,7 @@ fun DemoScreen() {
                         singleLine = true,
                     )
                     TintedButton("Greet", Green) {
-                        Owl.recordMetric("backend_greet_tapped", attributes = mapOf("name" to greetName))
+                        Pulse.recordMetric("backend_greet_tapped", attributes = mapOf("name" to greetName))
                         appendLog("[METRIC] backend_greet_tapped")
                         scope.launch {
                             val result = callBackend(
@@ -584,7 +584,7 @@ fun DemoScreen() {
                         }
                     }
                     TintedButton("Checkout (simulated failure)", Orange) {
-                        Owl.recordMetric("backend_checkout_tapped", attributes = mapOf("item" to "Widget"))
+                        Pulse.recordMetric("backend_checkout_tapped", attributes = mapOf("item" to "Widget"))
                         appendLog("[METRIC] backend_checkout_tapped")
                         scope.launch {
                             val result = callBackend(
@@ -621,14 +621,14 @@ fun DemoScreen() {
     }
 
     // Feedback bottom sheet — the analog of the iOS `.sheet` presenting
-    // OwlFeedbackView with default (toolbar) actions + contact fields.
+    // PulseFeedbackView with default (toolbar) actions + contact fields.
     if (showFeedbackSheet) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { showFeedbackSheet = false },
             sheetState = sheetState,
         ) {
-            OwlFeedbackView(
+            PulseFeedbackView(
                 name = userId.ifEmpty { null },
                 onSubmitted = { receipt ->
                     lastFeedbackId = receipt.id
@@ -641,7 +641,7 @@ fun DemoScreen() {
     }
 
     // Manual questionnaire presentation — the analog of the iOS `.sheet`
-    // presenting OwlQuestionnaireView from a fetched spec.
+    // presenting PulseQuestionnaireView from a fetched spec.
     val manualQ = manualQuestionnaire
     if (manualQ != null) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -653,7 +653,7 @@ fun DemoScreen() {
             },
             sheetState = sheetState,
         ) {
-            OwlQuestionnaireView(
+            PulseQuestionnaireView(
                 questionnaire = manualQ,
                 inProgress = manualQuestionnaireInProgress,
                 // Skip consent when resuming a draft — the user opted in earlier.

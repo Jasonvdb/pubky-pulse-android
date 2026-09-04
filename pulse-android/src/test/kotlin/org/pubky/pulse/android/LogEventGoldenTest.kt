@@ -68,12 +68,12 @@ class LogEventGoldenTest {
         clientEventId = "11111111-2222-3333-4444-555555555555",
         sessionId = "sess-abc",
         userId = "owl_anon_deadbeef",
-        level = OwlLogLevel.WARN,
+        level = PulseLogLevel.WARN,
         sourceModule = "Main.kt:onCreate:42",
         message = "hello world",
         screenName = "Home",
         customAttributes = linkedMapOf("color" to "blue", "_file" to "Main.kt", "_line" to "42"),
-        environment = OwlPlatform.ANDROID,
+        environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
         sdkName = "owlmetry-android",
@@ -126,9 +126,9 @@ class LogEventGoldenTest {
     @Test
     fun levelSerializesAsLowercaseWireString() {
         assertEquals("warn", fullEvent().toJson().getString("level"))
-        assertEquals("info", fullEvent().copy(level = OwlLogLevel.INFO).toJson().getString("level"))
-        assertEquals("debug", fullEvent().copy(level = OwlLogLevel.DEBUG).toJson().getString("level"))
-        assertEquals("error", fullEvent().copy(level = OwlLogLevel.ERROR).toJson().getString("level"))
+        assertEquals("info", fullEvent().copy(level = PulseLogLevel.INFO).toJson().getString("level"))
+        assertEquals("debug", fullEvent().copy(level = PulseLogLevel.DEBUG).toJson().getString("level"))
+        assertEquals("error", fullEvent().copy(level = PulseLogLevel.ERROR).toJson().getString("level"))
     }
 
     @Test

@@ -15,7 +15,7 @@ import java.net.URLConnection
 import java.security.MessageDigest
 
 /**
- * Uploads event attachments to the Owlmetry ingest API. The Android analog of
+ * Uploads event attachments to the Pubky Pulse ingest API. The Android analog of
  * Swift's `AttachmentUploader` actor.
  *
  * Two-step protocol, mirroring Swift exactly:
@@ -65,7 +65,7 @@ internal class AttachmentUploader(
         val clientEventId: String,
         val userId: String?,
         val isDev: Boolean,
-        val attachment: OwlAttachment,
+        val attachment: PulseAttachment,
     )
 
     private data class ReserveResponse(
@@ -82,7 +82,7 @@ internal class AttachmentUploader(
         clientEventId: String,
         userId: String?,
         isDev: Boolean,
-        attachments: List<OwlAttachment>,
+        attachments: List<PulseAttachment>,
     ) {
         if (attachments.isEmpty()) return
         queueMutex.withLock {
@@ -235,11 +235,11 @@ internal class AttachmentUploader(
     }
 
     /** Read the attachment's bytes + resolve its content type. */
-    private fun loadBytes(attachment: OwlAttachment): Pair<ByteArray, String> =
+    private fun loadBytes(attachment: PulseAttachment): Pair<ByteArray, String> =
         when (val source = attachment.source) {
-            is OwlAttachment.Source.DataSource ->
+            is PulseAttachment.Source.DataSource ->
                 source.bytes to (attachment.contentType ?: defaultContentType(attachment.name))
-            is OwlAttachment.Source.FileSource ->
+            is PulseAttachment.Source.FileSource ->
                 source.file.readBytes() to (attachment.contentType ?: defaultContentType(source.file.name))
         }
 
@@ -265,7 +265,7 @@ internal class AttachmentUploader(
     }
 
     companion object {
-        private const val TAG = "Owlmetry.attachments"
+        private const val TAG = "PubkyPulse.attachments"
         private const val UPLOAD_ATTEMPTS = 2
         private val HEX = "0123456789abcdef".toCharArray()
 

@@ -24,7 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * Edge-case + error-message parity for the questionnaire surface. Two slices the
  * happy-path tests don't touch:
  *
- *  1. [OwlQuestionnaireError] message strings must mirror Swift's
+ *  1. [PulseQuestionnaireError] message strings must mirror Swift's
  *     `errorDescription` byte-for-byte (the CLAUDE.md "mirror Swift names /
  *     semantics" rule — a thrown error must read identically across SDKs).
  *  2. Transport + answer-store edge behaviors: `force=false` omits the param,
@@ -77,7 +77,7 @@ class QuestionnaireErrorAndEdgeTest {
         )
 
     private val deviceInfo = DeviceInfo(
-        platform = OwlPlatform.ANDROID,
+        platform = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
         buildNumber = "45",
@@ -92,24 +92,24 @@ class QuestionnaireErrorAndEdgeTest {
     @Test
     fun `error messages mirror Swift errorDescription`() {
         assertEquals(
-            "Owlmetry is not configured. Call Owl.configure(...) first.",
-            OwlQuestionnaireError.NotConfigured.message,
+            "Pubky Pulse is not configured. Call Pulse.configure(...) first.",
+            PulseQuestionnaireError.NotConfigured.message,
         )
-        assertEquals("Questionnaire slug not found.", OwlQuestionnaireError.SlugNotFound.message)
+        assertEquals("Questionnaire slug not found.", PulseQuestionnaireError.SlugNotFound.message)
         assertEquals(
             "Invalid answers: too long",
-            OwlQuestionnaireError.InvalidAnswers("too long").message,
+            PulseQuestionnaireError.InvalidAnswers("too long").message,
         )
         // ServerError with a non-empty body interpolates the body.
         assertEquals(
             "Server returned 503: down for maintenance",
-            OwlQuestionnaireError.ServerError(503, "down for maintenance").message,
+            PulseQuestionnaireError.ServerError(503, "down for maintenance").message,
         )
         // ServerError with a null / empty body drops the suffix.
-        assertEquals("Server returned 503", OwlQuestionnaireError.ServerError(503, null).message)
-        assertEquals("Server returned 500", OwlQuestionnaireError.ServerError(500, "").message)
+        assertEquals("Server returned 503", PulseQuestionnaireError.ServerError(503, null).message)
+        assertEquals("Server returned 500", PulseQuestionnaireError.ServerError(500, "").message)
         // TransportFailure surfaces the detail verbatim.
-        assertEquals("connection reset", OwlQuestionnaireError.TransportFailure("connection reset").message)
+        assertEquals("connection reset", PulseQuestionnaireError.TransportFailure("connection reset").message)
     }
 
     // ---- Transport edge cases ----
@@ -135,7 +135,7 @@ class QuestionnaireErrorAndEdgeTest {
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val result = (tx.fetchQuestionnaire("s", null) as QuestionnaireFetchOutcome.Success).result
         assertNull(result.questionnaire)
-        assertEquals(OwlQuestionnaireIneligibleReason.INACTIVE, result.ineligibleReason)
+        assertEquals(PulseQuestionnaireIneligibleReason.INACTIVE, result.ineligibleReason)
     }
 
     @Test
@@ -177,8 +177,8 @@ class QuestionnaireErrorAndEdgeTest {
         val http = FakeHttpClient().apply { default = HttpResponse(500, "boom") }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val err = (tx.fetchQuestionnaire("s", null) as QuestionnaireFetchOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.ServerError)
-        assertEquals(500, (err as OwlQuestionnaireError.ServerError).statusCode)
+        assertTrue(err is PulseQuestionnaireError.ServerError)
+        assertEquals(500, (err as PulseQuestionnaireError.ServerError).statusCode)
         assertEquals("boom", err.body)
     }
 
@@ -187,8 +187,8 @@ class QuestionnaireErrorAndEdgeTest {
         val http = FakeHttpClient().apply { throwable = IOException("network down") }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val err = (tx.fetchQuestionnaire("s", null) as QuestionnaireFetchOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.TransportFailure)
-        assertEquals("network down", (err as OwlQuestionnaireError.TransportFailure).detail)
+        assertTrue(err is PulseQuestionnaireError.TransportFailure)
+        assertEquals("network down", (err as PulseQuestionnaireError.TransportFailure).detail)
     }
 
     @Test
@@ -200,7 +200,7 @@ class QuestionnaireErrorAndEdgeTest {
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val outcome = tx.saveQuestionnaireResponse(
             slug = "s", userId = "u", sessionId = "sess",
-            answers = mapOf("n" to OwlQuestionnaireAnswerValue.NpsValue(7)),
+            answers = mapOf("n" to PulseQuestionnaireAnswerValue.NpsValue(7)),
             isComplete = false, deviceInfo = deviceInfo, environment = "android",
             appVersion = "1.0", isDev = false,
         )
@@ -218,7 +218,7 @@ class QuestionnaireErrorAndEdgeTest {
             isComplete = true, deviceInfo = deviceInfo, environment = "android",
             appVersion = null, isDev = false,
         )
-        assertTrue((outcome as QuestionnaireSaveOutcome.Failure).error is OwlQuestionnaireError.SlugNotFound)
+        assertTrue((outcome as QuestionnaireSaveOutcome.Failure).error is PulseQuestionnaireError.SlugNotFound)
     }
 
     @Test
@@ -231,8 +231,8 @@ class QuestionnaireErrorAndEdgeTest {
             appVersion = null, isDev = false,
         )
         val err = (outcome as QuestionnaireSaveOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.ServerError)
-        assertEquals(503, (err as OwlQuestionnaireError.ServerError).statusCode)
+        assertTrue(err is PulseQuestionnaireError.ServerError)
+        assertEquals(503, (err as PulseQuestionnaireError.ServerError).statusCode)
     }
 
     @Test
@@ -263,8 +263,8 @@ class QuestionnaireErrorAndEdgeTest {
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val outcome = tx.submitQuestionnaireDismiss(userId = "u")
         val err = (outcome as QuestionnaireDismissOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.ServerError)
-        assertEquals(500, (err as OwlQuestionnaireError.ServerError).statusCode)
+        assertTrue(err is PulseQuestionnaireError.ServerError)
+        assertEquals(500, (err as PulseQuestionnaireError.ServerError).statusCode)
     }
 
     @Test
@@ -272,31 +272,31 @@ class QuestionnaireErrorAndEdgeTest {
         val http = FakeHttpClient().apply { throwable = IOException("offline") }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
         val err = (tx.submitQuestionnaireDismiss("u") as QuestionnaireDismissOutcome.Failure).error
-        assertTrue(err is OwlQuestionnaireError.TransportFailure)
-        assertEquals("offline", (err as OwlQuestionnaireError.TransportFailure).detail)
+        assertTrue(err is PulseQuestionnaireError.TransportFailure)
+        assertEquals("offline", (err as PulseQuestionnaireError.TransportFailure).detail)
     }
 
     // ---- Answer store edge cases ----
 
-    private fun schema(): OwlQuestionnaireSchema = OwlQuestionnaireSchema(
+    private fun schema(): PulseQuestionnaireSchema = PulseQuestionnaireSchema(
         version = 1,
         questions = listOf(
-            OwlQuestionnaireQuestion.Text("t", "Text", null, required = false, placeholder = null, multiline = false),
-            OwlQuestionnaireQuestion.Rating("r", "Rating", null, required = false, scale = 5),
-            OwlQuestionnaireQuestion.Nps("n", "Nps", null, required = false),
+            PulseQuestionnaireQuestion.Text("t", "Text", null, required = false, placeholder = null, multiline = false),
+            PulseQuestionnaireQuestion.Rating("r", "Rating", null, required = false, scale = 5),
+            PulseQuestionnaireQuestion.Nps("n", "Nps", null, required = false),
         ),
     )
 
     @Test
     fun `firstUnansweredIndex on empty schema is zero`() {
-        val empty = OwlQuestionnaireSchema(version = 1, questions = emptyList())
-        assertEquals(0, OwlQuestionnaireAnswerStore().firstUnansweredIndex(empty))
+        val empty = PulseQuestionnaireSchema(version = 1, questions = emptyList())
+        assertEquals(0, PulseQuestionnaireAnswerStore().firstUnansweredIndex(empty))
     }
 
     @Test
     fun `setting then clearing an answer with null removes it`() {
         val s = schema()
-        var store = OwlQuestionnaireAnswerStore().withText("t", "hello").withRating("r", 4).withNps("n", 9)
+        var store = PulseQuestionnaireAnswerStore().withText("t", "hello").withRating("r", 4).withNps("n", 9)
         assertTrue(store.isAnswered(s.questions[0]))
         assertTrue(store.isAnswered(s.questions[1]))
         assertTrue(store.isAnswered(s.questions[2]))
@@ -311,16 +311,16 @@ class QuestionnaireErrorAndEdgeTest {
 
     @Test
     fun `withSingle null removes the single-choice answer`() {
-        val single = OwlQuestionnaireSchema(
+        val single = PulseQuestionnaireSchema(
             version = 1,
             questions = listOf(
-                OwlQuestionnaireQuestion.SingleChoice(
+                PulseQuestionnaireQuestion.SingleChoice(
                     "s", "S", null, required = false,
-                    options = listOf(OwlQuestionnaireChoiceOption("a", "A")),
+                    options = listOf(PulseQuestionnaireChoiceOption("a", "A")),
                 ),
             ),
         )
-        var store = OwlQuestionnaireAnswerStore().withSingle("s", "a")
+        var store = PulseQuestionnaireAnswerStore().withSingle("s", "a")
         assertTrue(store.isAnswered(single.questions[0]))
         store = store.withSingle("s", null)
         assertFalse(store.isAnswered(single.questions[0]))
@@ -328,21 +328,21 @@ class QuestionnaireErrorAndEdgeTest {
 
     @Test
     fun `collected omits everything for an empty store`() {
-        assertTrue(OwlQuestionnaireAnswerStore().collected(schema()).isEmpty())
+        assertTrue(PulseQuestionnaireAnswerStore().collected(schema()).isEmpty())
     }
 
     @Test
     fun `togglingMulti to empty marks the question unanswered`() {
-        val multiSchema = OwlQuestionnaireSchema(
+        val multiSchema = PulseQuestionnaireSchema(
             version = 1,
             questions = listOf(
-                OwlQuestionnaireQuestion.MultiChoice(
+                PulseQuestionnaireQuestion.MultiChoice(
                     "m", "M", null, required = false,
-                    options = listOf(OwlQuestionnaireChoiceOption("x", "X"), OwlQuestionnaireChoiceOption("y", "Y")),
+                    options = listOf(PulseQuestionnaireChoiceOption("x", "X"), PulseQuestionnaireChoiceOption("y", "Y")),
                 ),
             ),
         )
-        var store = OwlQuestionnaireAnswerStore().togglingMulti("m", "x").togglingMulti("m", "y")
+        var store = PulseQuestionnaireAnswerStore().togglingMulti("m", "x").togglingMulti("m", "y")
         assertTrue(store.isAnswered(multiSchema.questions[0]))
         // Toggle both off → the set is present but empty → unanswered.
         store = store.togglingMulti("m", "x").togglingMulti("m", "y")
@@ -352,7 +352,7 @@ class QuestionnaireErrorAndEdgeTest {
 
     @Test
     fun `hydrateDraftAnswers skips JSON-null values`() {
-        val q = OwlQuestionnaire.fromJson(
+        val q = PulseQuestionnaire.fromJson(
             JSONObject(
                 """{ "id": "i", "slug": "s", "name": "n", "schema": { "version": 1, "questions": [
                       { "type": "text", "id": "t", "title": "T", "required": false } ] } }""",
