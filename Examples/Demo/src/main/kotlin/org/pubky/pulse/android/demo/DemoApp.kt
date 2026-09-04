@@ -13,7 +13,7 @@ import org.pubky.pulse.android.Pulse
  * the dev server running on the host's port 4000. (On a physical device, swap
  * this for your machine's LAN IP.)
  *
- * The API key is the seeded demo client key (`owl_client_demo_…`), identical to
+ * The API key is the seeded demo client key (`pulse_client_demo_…`), identical to
  * the one the Swift demo uses, so both demos report into the same "Demo Project".
  */
 class DemoApp : Application() {
@@ -23,7 +23,7 @@ class DemoApp : Application() {
             Pulse.configure(
                 context = this,
                 endpoint = "http://10.0.2.2:4000",
-                apiKey = "owl_client_demo_000000000000000000000000000000000000000000",
+                apiKey = "pulse_client_demo_000000000000000000000000000000000000000000",
             )
         } catch (e: Throwable) {
             // Mirrors the Swift demo's do/catch — a bad endpoint or key shouldn't
