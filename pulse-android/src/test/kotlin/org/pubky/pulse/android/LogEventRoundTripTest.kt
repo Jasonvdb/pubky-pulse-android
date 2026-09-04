@@ -22,7 +22,7 @@ class LogEventRoundTripTest {
     private fun fullEvent() = LogEvent(
         clientEventId = "11111111-2222-3333-4444-555555555555",
         sessionId = "sess-abc",
-        userId = "owl_anon_deadbeef",
+        userId = "pulse_anon_deadbeef",
         level = PulseLogLevel.WARN,
         sourceModule = "Main.kt:onCreate:42",
         message = "hello world",
@@ -31,7 +31,7 @@ class LogEventRoundTripTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = "108",
         deviceModel = "Google Pixel 8",

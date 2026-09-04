@@ -32,7 +32,7 @@ class DuplicateFilterTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = null,
         deviceModel = "Pixel",

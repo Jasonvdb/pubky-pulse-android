@@ -5,11 +5,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Phase 1 scaffold smoke test — proves the module compiles, resolves, and runs JVM unit tests. */
-class PulsemetryVersionTest {
+class PubkyPulseVersionTest {
 
     @Test
     fun sdkNameIsAndroid() {
-        assertEquals("owlmetry-android", PubkyPulseVersion.NAME)
+        assertEquals("pubky-pulse-android", PubkyPulseVersion.NAME)
     }
 
     @Test

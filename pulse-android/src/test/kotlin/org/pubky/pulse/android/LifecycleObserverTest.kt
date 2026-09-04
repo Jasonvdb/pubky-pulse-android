@@ -57,7 +57,7 @@ class LifecycleObserverTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-lifecycle", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-lifecycle", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -73,7 +73,7 @@ class LifecycleObserverTest {
         reachability: Reachability = FakeReachability(true),
     ) = EventTransport(
         endpoint = URL("https://ingest.example.com"),
-        apiKey = "owl_client_abc",
+        apiKey = "pulse_client_abc",
         bundleId = "com.example.app",
         compressionEnabled = false,
         offlineQueue = offlineQueue,
@@ -192,7 +192,7 @@ class LifecycleObserverTest {
             Pulse.configure(
                 context = androidx.test.core.app.ApplicationProvider.getApplicationContext(),
                 endpoint = "https://ingest.example.com",
-                apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                apiKey = "pulse_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 compressionEnabled = false,
                 networkTrackingEnabled = false,
                 consoleLogging = false,

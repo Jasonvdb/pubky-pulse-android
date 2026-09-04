@@ -28,7 +28,7 @@ class EventBuilderTest {
         level = PulseLogLevel.INFO,
         screenName = "Home",
         customAttributes = attrs,
-        userId = "owl_anon_1",
+        userId = "pulse_anon_1",
         sessionId = "sess",
         deviceInfo = device,
         isDev = false,

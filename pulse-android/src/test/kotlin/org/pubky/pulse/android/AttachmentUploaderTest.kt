@@ -79,7 +79,7 @@ class AttachmentUploaderTest {
     @Before
     fun setUp() {
         http = FakeHttpClient()
-        tmpDir = File.createTempFile("owl-att", "").let { it.delete(); it.mkdirs(); it }
+        tmpDir = File.createTempFile("pulse-att", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -96,7 +96,7 @@ class AttachmentUploaderTest {
         sdkHardCapBytes: Long = AttachmentUploader.DEFAULT_SDK_HARD_CAP_BYTES,
     ) = AttachmentUploader(
         endpoint = URL("https://ingest.example.com"),
-        apiKey = "owl_client_abc",
+        apiKey = "pulse_client_abc",
         scope = scope,
         httpClient = http,
         sdkHardCapBytes = sdkHardCapBytes,
@@ -139,7 +139,7 @@ class AttachmentUploaderTest {
         // Reserve POST is JSON + bearer; upload PUT is octet-stream of the exact bytes.
         val reserveReq = http.reserves().first()
         assertEquals("POST", reserveReq.method)
-        assertEquals("Bearer owl_client_abc", reserveReq.headers["Authorization"])
+        assertEquals("Bearer pulse_client_abc", reserveReq.headers["Authorization"])
         val put = http.puts().first()
         assertEquals("PUT", put.method)
         assertEquals("application/octet-stream", put.headers["Content-Type"])
@@ -300,13 +300,13 @@ class AttachmentUploaderTest {
             userId = null,
             isDev = false,
             attachments = listOf(
-                PulseAttachment.bytes("payload".toByteArray(), name = "report.txt", contentType = "application/x-owl"),
+                PulseAttachment.bytes("payload".toByteArray(), name = "report.txt", contentType = "application/x-pulse"),
             ),
         )
         advanceUntilIdle()
 
         val reserve = JSONObject(http.reserves().first().body!!.toString(Charsets.UTF_8))
-        assertEquals("application/x-owl", reserve.getString("content_type"))
+        assertEquals("application/x-pulse", reserve.getString("content_type"))
     }
 
     @Test
@@ -346,7 +346,7 @@ class AttachmentUploaderTest {
         }
         val uploader = AttachmentUploader(
             endpoint = URL("https://ingest.example.com"),
-            apiKey = "owl_client_abc",
+            apiKey = "pulse_client_abc",
             scope = backgroundScope,
             httpClient = throwingHttp,
             ioDispatcher = UnconfinedTestDispatcher(testScheduler),

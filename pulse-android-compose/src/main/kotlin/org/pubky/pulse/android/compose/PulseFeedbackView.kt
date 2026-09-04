@@ -445,11 +445,11 @@ private val EMAIL_REGEX = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 
 // Test tags so the Compose UI test can locate fields/buttons/dialogs without
 // depending on (overridable, localized) label text.
-internal const val FEEDBACK_MESSAGE_TAG: String = "owl_feedback_message"
-internal const val FEEDBACK_NAME_TAG: String = "owl_feedback_name"
-internal const val FEEDBACK_EMAIL_TAG: String = "owl_feedback_email"
-internal const val FEEDBACK_SUBMIT_TAG: String = "owl_feedback_submit"
-internal const val FEEDBACK_PROGRESS_TAG: String = "owl_feedback_progress"
-internal const val FEEDBACK_ERROR_DIALOG_TAG: String = "owl_feedback_error_dialog"
-internal const val FEEDBACK_SUCCESS_DIALOG_TAG: String = "owl_feedback_success_dialog"
-internal const val FEEDBACK_NO_CONTACT_DIALOG_TAG: String = "owl_feedback_no_contact_dialog"
+internal const val FEEDBACK_MESSAGE_TAG: String = "pulse_feedback_message"
+internal const val FEEDBACK_NAME_TAG: String = "pulse_feedback_name"
+internal const val FEEDBACK_EMAIL_TAG: String = "pulse_feedback_email"
+internal const val FEEDBACK_SUBMIT_TAG: String = "pulse_feedback_submit"
+internal const val FEEDBACK_PROGRESS_TAG: String = "pulse_feedback_progress"
+internal const val FEEDBACK_ERROR_DIALOG_TAG: String = "pulse_feedback_error_dialog"
+internal const val FEEDBACK_SUCCESS_DIALOG_TAG: String = "pulse_feedback_success_dialog"
+internal const val FEEDBACK_NO_CONTACT_DIALOG_TAG: String = "pulse_feedback_no_contact_dialog"

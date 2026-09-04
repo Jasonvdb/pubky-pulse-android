@@ -232,7 +232,7 @@ internal fun PulseQuestionnaireFlowContainer(
             transitionSpec = {
                 (fadeIn(tween(200)) togetherWith fadeOut(tween(200)))
             },
-            label = "owl_questionnaire_phase",
+            label = "pulse_questionnaire_phase",
         ) { current ->
             when (current) {
                 is QuestionnairePhase.Consent -> {
@@ -483,11 +483,11 @@ private fun QuestionPage(
     }
 }
 
-internal const val QUESTIONNAIRE_ROOT_TAG: String = "owl_q_root"
-internal const val QUESTIONNAIRE_CANCEL_TAG: String = "owl_q_cancel"
-internal const val QUESTIONNAIRE_BACK_TAG: String = "owl_q_back"
-internal const val QUESTIONNAIRE_NEXT_TAG: String = "owl_q_next"
-internal const val QUESTIONNAIRE_SUBMIT_TAG: String = "owl_q_submit"
-internal const val QUESTIONNAIRE_PROGRESS_TAG: String = "owl_q_progress"
-internal const val QUESTIONNAIRE_ERROR_DIALOG_TAG: String = "owl_q_error_dialog"
-internal const val QUESTIONNAIRE_DISMISS_DIALOG_TAG: String = "owl_q_dismiss_dialog"
+internal const val QUESTIONNAIRE_ROOT_TAG: String = "pulse_q_root"
+internal const val QUESTIONNAIRE_CANCEL_TAG: String = "pulse_q_cancel"
+internal const val QUESTIONNAIRE_BACK_TAG: String = "pulse_q_back"
+internal const val QUESTIONNAIRE_NEXT_TAG: String = "pulse_q_next"
+internal const val QUESTIONNAIRE_SUBMIT_TAG: String = "pulse_q_submit"
+internal const val QUESTIONNAIRE_PROGRESS_TAG: String = "pulse_q_progress"
+internal const val QUESTIONNAIRE_ERROR_DIALOG_TAG: String = "pulse_q_error_dialog"
+internal const val QUESTIONNAIRE_DISMISS_DIALOG_TAG: String = "pulse_q_dismiss_dialog"

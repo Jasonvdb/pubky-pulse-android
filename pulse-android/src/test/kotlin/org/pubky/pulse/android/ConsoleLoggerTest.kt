@@ -25,7 +25,7 @@ class ConsoleLoggerTest {
     @Test
     fun plainInfoIsFormatted() {
         val line = ConsoleLogger.format("hello world", PulseLogLevel.INFO, null)
-        assertEquals("🦉  INFO  hello world", line)
+        assertEquals("[pulse] INFO  hello world", line)
     }
 
     @Test
@@ -38,18 +38,18 @@ class ConsoleLoggerTest {
 
     @Test
     fun stepPrefixIsRewritten() {
-        assertEquals("🦉  INFO  step: checkout", ConsoleLogger.format("step:checkout", PulseLogLevel.INFO, null))
+        assertEquals("[pulse] INFO  step: checkout", ConsoleLogger.format("step:checkout", PulseLogLevel.INFO, null))
     }
 
     @Test
     fun legacyTrackPrefixIsRewrittenToStep() {
-        assertEquals("🦉  INFO  step: signup", ConsoleLogger.format("track:signup", PulseLogLevel.INFO, null))
+        assertEquals("[pulse] INFO  step: signup", ConsoleLogger.format("track:signup", PulseLogLevel.INFO, null))
     }
 
     @Test
     fun metricPhaseIsRewritten() {
         assertEquals(
-            "🦉  INFO  metric: api-request complete",
+            "[pulse] INFO  metric: api-request complete",
             ConsoleLogger.format("metric:api-request:complete", PulseLogLevel.INFO, null),
         )
     }
@@ -57,7 +57,7 @@ class ConsoleLoggerTest {
     @Test
     fun metricWithoutPhaseIsRewritten() {
         assertEquals(
-            "🦉  INFO  metric: onboarding",
+            "[pulse] INFO  metric: onboarding",
             ConsoleLogger.format("metric:onboarding", PulseLogLevel.INFO, null),
         )
     }
@@ -65,11 +65,23 @@ class ConsoleLoggerTest {
     @Test
     fun attributesAreSortedAndAppended() {
         val line = ConsoleLogger.format("hi", PulseLogLevel.WARN, mapOf("z" to "1", "a" to "2"))
-        assertEquals("🦉  WARN  hi {a=2, z=1}", line)
+        assertEquals("[pulse] WARN  hi {a=2, z=1}", line)
     }
 
     @Test
     fun emptyAttributesAreOmitted() {
-        assertEquals("🦉  ERROR boom", ConsoleLogger.format("boom", PulseLogLevel.ERROR, emptyMap()))
+        assertEquals("[pulse] ERROR boom", ConsoleLogger.format("boom", PulseLogLevel.ERROR, emptyMap()))
+    }
+
+    /**
+     * Exact pins on the SDK's console identity: the Logcat tag every echoed
+     * line is filed under, and the prefix the line itself carries (shared with
+     * the other Pubky Pulse SDKs). Both are only ever read by a human staring
+     * at Logcat, so nothing else fails when one is renamed and the other is not.
+     */
+    @Test
+    fun consoleIdentityIsPinned() {
+        assertEquals("PubkyPulse", ConsoleLogger.TAG)
+        assertTrue(ConsoleLogger.format("m", PulseLogLevel.INFO, null)!!.startsWith("[pulse] "))
     }
 }

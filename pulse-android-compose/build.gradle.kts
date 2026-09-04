@@ -85,7 +85,7 @@ dependencies {
 // classes (JDK 17+ bytecode → "PermittedSubclasses requires ASM9"), so javadoc
 // generation crashes and would fail every Maven Central publish. The core module
 // has no Compose deps and generates fine; only this module trips it. We don't ship
-// API docs inside the jar (they live at owlmetry.com/docs), so publish an EMPTY
+// API docs inside the jar (they live at pulse.pubky.org/docs), so publish an EMPTY
 // javadoc jar: disabling the Dokka generation step leaves vanniktech's javaDocJar
 // to zip nothing into a valid, empty javadoc artifact that Central still accepts.
 tasks.matching { it.name == "javaDocReleaseGeneration" }.configureEach {
@@ -102,7 +102,10 @@ tasks.matching { it.name == "javaDocReleaseGeneration" }.configureEach {
 //   ORG_GRADLE_PROJECT_signingInMemoryKeyPassword — GPG key passphrase
 // (set as repo secrets / actions env so they reach the `publish` task).
 mavenPublishing {
-    coordinates(group.toString(), "pulse-android-compose", version.toString())
+    // Group is spelled out here rather than read from `group`; keep it equal to
+    // GROUP in gradle.properties, which still names the module for inter-module
+    // POM dependencies.
+    coordinates("org.pubky.pulse", "pulse-android-compose", version.toString())
 
     pom {
         name.set("Pubky Pulse Android SDK — Compose UI")
@@ -110,7 +113,7 @@ mavenPublishing {
             "Optional Jetpack Compose UI for the Pubky Pulse Android SDK — drop-in " +
                 "PulseFeedbackView, PulseQuestionnaireView, and the pulseScreen modifier. Builds on pulse-android."
         )
-        url.set("https://owlmetry.com/github")
+        url.set("https://pulse.pubky.org")
         inceptionYear.set("2026")
 
         licenses {
@@ -123,16 +126,16 @@ mavenPublishing {
 
         developers {
             developer {
-                id.set("owlmetry")
+                id.set("pubky")
                 name.set("Pubky Pulse")
-                url.set("https://owlmetry.com")
+                url.set("https://pulse.pubky.org")
             }
         }
 
         scm {
-            url.set("https://github.com/owlmetry/owlmetry-android")
-            connection.set("scm:git:git://github.com/owlmetry/owlmetry-android.git")
-            developerConnection.set("scm:git:ssh://git@github.com/owlmetry/owlmetry-android.git")
+            url.set("https://github.com/pubky/pubky-pulse-android")
+            connection.set("scm:git:git://github.com/pubky/pubky-pulse-android.git")
+            developerConnection.set("scm:git:ssh://git@github.com/pubky/pubky-pulse-android.git")
         }
     }
 

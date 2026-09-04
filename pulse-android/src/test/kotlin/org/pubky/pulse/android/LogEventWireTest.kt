@@ -21,7 +21,7 @@ class LogEventWireTest {
     private fun fullEvent() = LogEvent(
         clientEventId = "evt-1",
         sessionId = "sess-1",
-        userId = "owl_anon_x",
+        userId = "pulse_anon_x",
         level = PulseLogLevel.WARN,
         sourceModule = "Main.kt:onCreate:42",
         message = "hello",
@@ -30,7 +30,7 @@ class LogEventWireTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = "1.2.3",
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = "42",
         deviceModel = "Google Pixel 8",
@@ -46,7 +46,7 @@ class LogEventWireTest {
         val json = fullEvent().toJson()
         assertEquals("evt-1", json.getString("client_event_id"))
         assertEquals("sess-1", json.getString("session_id"))
-        assertEquals("owl_anon_x", json.getString("user_id"))
+        assertEquals("pulse_anon_x", json.getString("user_id"))
         assertEquals("warn", json.getString("level"))
         assertEquals("Main.kt:onCreate:42", json.getString("source_module"))
         assertEquals("hello", json.getString("message"))
@@ -54,7 +54,7 @@ class LogEventWireTest {
         assertEquals("android", json.getString("environment"))
         assertEquals("14", json.getString("os_version"))
         assertEquals("1.2.3", json.getString("app_version"))
-        assertEquals("owlmetry-android", json.getString("sdk_name"))
+        assertEquals("pubky-pulse-android", json.getString("sdk_name"))
         assertEquals("0.1.0", json.getString("sdk_version"))
         assertEquals("42", json.getString("build_number"))
         assertEquals("Google Pixel 8", json.getString("device_model"))

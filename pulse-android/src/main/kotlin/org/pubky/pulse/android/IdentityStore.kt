@@ -102,20 +102,20 @@ internal class IdentityStore(
     }
 
     internal companion object {
-        /** `owl_anon_` — same prefix the server keys anonymous app_users on. */
-        const val ANONYMOUS_ID_PREFIX: String = "owl_anon_"
+        /** `pulse_anon_` — same prefix the server keys anonymous app_users on. */
+        const val ANONYMOUS_ID_PREFIX: String = "pulse_anon_"
 
         /**
          * Private preference file for the SDK. Named after the Swift Keychain
-         * service identifier (`com.owlmetry.sdk`) so the storage namespace reads
+         * service identifier (`org.pubky.pulse.sdk`) so the storage namespace reads
          * consistently across platforms.
          */
-        const val PREFS_NAME: String = "com.owlmetry.sdk"
+        const val PREFS_NAME: String = "org.pubky.pulse.sdk"
 
         /** Anonymous-ID key — analog of the Keychain `account` "anonymousId". */
         const val KEY_ANONYMOUS_ID: String = "anonymousId"
 
-        /** Real-user-ID key — analog of the UserDefaults "owlmetry.userId" key. */
-        const val KEY_USER_ID: String = "owlmetry.userId"
+        /** Real-user-ID key — analog of the UserDefaults "pulse.userId" key. */
+        const val KEY_USER_ID: String = "pulse.userId"
     }
 }

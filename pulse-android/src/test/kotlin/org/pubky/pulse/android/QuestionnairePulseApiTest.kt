@@ -119,7 +119,7 @@ class QuestionnairePulseApiTest {
         Pulse.configure(
             context = context,
             endpoint = "https://ingest.example.com",
-            apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            apiKey = "pulse_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             compressionEnabled = false,
             networkTrackingEnabled = false,
             consoleLogging = false,

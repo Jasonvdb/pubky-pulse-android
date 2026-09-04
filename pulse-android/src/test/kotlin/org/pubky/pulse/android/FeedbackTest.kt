@@ -106,7 +106,7 @@ class FeedbackTest {
         Pulse.configure(
             context = context,
             endpoint = "https://ingest.example.com",
-            apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            apiKey = "pulse_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             compressionEnabled = false,
             networkTrackingEnabled = false,
             consoleLogging = false,
@@ -126,10 +126,10 @@ class FeedbackTest {
 
     private fun transport(http: HttpClient): EventTransport {
         val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
-        val dir = java.io.File.createTempFile("owl-fb", "").let { it.delete(); it.mkdirs(); it }
+        val dir = java.io.File.createTempFile("pulse-fb", "").let { it.delete(); it.mkdirs(); it }
         return EventTransport(
             endpoint = URL("https://ingest.example.com"),
-            apiKey = "owl_client_abc",
+            apiKey = "pulse_client_abc",
             bundleId = "com.example.app",
             compressionEnabled = false,
             offlineQueue = OfflineQueue(dir, scope),
@@ -144,11 +144,11 @@ class FeedbackTest {
         bundleId = "com.example.app",
         message = "hello",
         sessionId = "sess",
-        userId = "owl_anon_x",
+        userId = "pulse_anon_x",
         submitterName = null,
         submitterEmail = null,
         appVersion = "1.0",
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         environment = "android",
         deviceModel = "Pixel",
@@ -169,7 +169,7 @@ class FeedbackTest {
         val req = http.feedbackRequests().single()
         assertEquals("POST", req.method)
         assertTrue(req.url.toString().endsWith("/v1/feedback"))
-        assertEquals("Bearer owl_client_abc", req.headers["Authorization"])
+        assertEquals("Bearer pulse_client_abc", req.headers["Authorization"])
         assertEquals("application/json", req.headers["Content-Type"])
         val body = JSONObject(req.body!!.toString(Charsets.UTF_8))
         assertEquals("com.example.app", body.getString("bundle_id"))
@@ -255,7 +255,7 @@ class FeedbackTest {
         val body = http.feedbackBodies().single()
         assertEquals("please add dark mode", body.getString("message"))
         // Auto-attached fields from the configured state.
-        assertEquals("owlmetry-android", body.getString("sdk_name"))
+        assertEquals("pubky-pulse-android", body.getString("sdk_name"))
         assertEquals("android", body.getString("environment"))
         assertTrue(body.has("session_id"))
         assertTrue(body.has("user_id"))

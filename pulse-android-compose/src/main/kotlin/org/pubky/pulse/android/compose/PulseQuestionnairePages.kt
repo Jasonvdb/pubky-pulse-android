@@ -340,9 +340,9 @@ private fun NpsChip(
 }
 
 // Test tags — let the Compose UI test locate inputs without depending on text.
-internal const val QUESTIONNAIRE_TITLE_TAG: String = "owl_q_title"
-internal const val QUESTIONNAIRE_TEXT_TAG: String = "owl_q_text"
-internal const val QUESTIONNAIRE_SINGLE_OPTION_TAG: String = "owl_q_single_option"
-internal const val QUESTIONNAIRE_MULTI_OPTION_TAG: String = "owl_q_multi_option"
-internal const val QUESTIONNAIRE_RATING_TAG: String = "owl_q_rating"
-internal const val QUESTIONNAIRE_NPS_TAG: String = "owl_q_nps"
+internal const val QUESTIONNAIRE_TITLE_TAG: String = "pulse_q_title"
+internal const val QUESTIONNAIRE_TEXT_TAG: String = "pulse_q_text"
+internal const val QUESTIONNAIRE_SINGLE_OPTION_TAG: String = "pulse_q_single_option"
+internal const val QUESTIONNAIRE_MULTI_OPTION_TAG: String = "pulse_q_multi_option"
+internal const val QUESTIONNAIRE_RATING_TAG: String = "pulse_q_rating"
+internal const val QUESTIONNAIRE_NPS_TAG: String = "pulse_q_nps"

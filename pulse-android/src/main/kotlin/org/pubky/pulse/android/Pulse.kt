@@ -33,7 +33,7 @@ import java.util.UUID
  */
 public object Pulse {
     /** os_log subsystem analog — used by later logging phases. */
-    public const val LOG_SUBSYSTEM: String = "com.owlmetry.sdk"
+    public const val LOG_SUBSYSTEM: String = "org.pubky.pulse.sdk"
 
     private val lock = Any()
 

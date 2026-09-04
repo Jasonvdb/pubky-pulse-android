@@ -4,8 +4,8 @@
   (Android 6.0–11 / API 23–30).
 
   The Pubky Pulse SDK keeps its persistent identity in a private SharedPreferences
-  file named `com.owlmetry.sdk` (see IdentityStore). That file holds the
-  anonymous id (`owl_anon_*`) and, once `Pulse.setUser` is called, the real user
+  file named `org.pubky.pulse.sdk` (see IdentityStore). That file holds the
+  anonymous id (`pulse_anon_*`) and, once `Pulse.setUser` is called, the real user
   id. On iOS the anonymous id lives in the Keychain, so it survives an app
   delete + reinstall; Android has no framework-only equivalent and wipes a
   package's SharedPreferences on uninstall.
@@ -30,7 +30,7 @@
       Back up only the SDK's identity prefs. Scoped tightly to one file so the
       SDK's backup footprint stays minimal and never sweeps in unrelated app
       data. The `.xml` suffix is the on-disk filename SharedPreferences writes
-      under shared_prefs/ for the `com.owlmetry.sdk` preference name.
+      under shared_prefs/ for the `org.pubky.pulse.sdk` preference name.
     -->
-    <include domain="sharedpref" path="com.owlmetry.sdk.xml" />
+    <include domain="sharedpref" path="org.pubky.pulse.sdk.xml" />
 </full-backup-content>

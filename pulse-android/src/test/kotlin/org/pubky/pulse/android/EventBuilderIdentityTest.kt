@@ -39,7 +39,7 @@ class EventBuilderIdentityTest {
         level = level,
         screenName = "Checkout",
         customAttributes = attrs,
-        userId = "owl_anon_1",
+        userId = "pulse_anon_1",
         sessionId = "sess-xyz",
         deviceInfo = device,
         isDev = false,
@@ -52,9 +52,9 @@ class EventBuilderIdentityTest {
 
     @Test
     fun stampsSdkNameOnEveryEvent() {
-        assertEquals("owlmetry-android", build().sdkName)
+        assertEquals("pubky-pulse-android", build().sdkName)
         // And the constant the builder reads is the same value.
-        assertEquals("owlmetry-android", PubkyPulseVersion.NAME)
+        assertEquals("pubky-pulse-android", PubkyPulseVersion.NAME)
     }
 
     @Test
@@ -104,7 +104,7 @@ class EventBuilderIdentityTest {
     fun passesSessionAndUserAndDevDirectly() {
         val event = build()
         assertEquals("sess-xyz", event.sessionId)
-        assertEquals("owl_anon_1", event.userId)
+        assertEquals("pulse_anon_1", event.userId)
         assertEquals(false, event.isDev)
         assertEquals(PulsePlatform.ANDROID, event.environment)
     }
@@ -114,7 +114,7 @@ class EventBuilderIdentityTest {
         // Robolectric-backed org.json: confirm the builder output serializes with
         // the identity + reserved attributes intact (not just on the model).
         val json = build().toJson()
-        assertEquals("owlmetry-android", json.getString("sdk_name"))
+        assertEquals("pubky-pulse-android", json.getString("sdk_name"))
         assertEquals(PubkyPulseVersion.CURRENT, json.getString("sdk_version"))
         assertEquals("error", json.getString("level"))
         assertEquals("user tapped buy", json.getString("message"))

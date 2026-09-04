@@ -27,7 +27,7 @@ import java.io.File
  *    Swift's detached `Task { try? await Task.sleep(...) }`),
  *  - the queue is trimmed to [maxEvents], dropping the oldest.
  *
- * The file lives under `<filesDir>/owlmetry/offline_queue.json` — the closest
+ * The file lives under `<filesDir>/pulse/offline_queue.json` — the closest
  * Android analog of iOS's Application Support directory (private, persistent,
  * not user-visible, not auto-purged like the cache dir).
  */
@@ -43,7 +43,7 @@ internal class OfflineQueue(
     private val maxEvents = 10_000
 
     init {
-        val dir = File(directory, "owlmetry")
+        val dir = File(directory, "pulse")
         // mkdirs() can throw SecurityException under a restrictive SecurityManager
         // (it returns false for ordinary failures like disk-full). This runs
         // synchronously on the caller's thread inside Pulse.configure(), so a failed

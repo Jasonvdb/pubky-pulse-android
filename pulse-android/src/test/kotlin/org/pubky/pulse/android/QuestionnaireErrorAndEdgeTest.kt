@@ -55,7 +55,7 @@ class QuestionnaireErrorAndEdgeTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-qerr", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-qerr", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -66,7 +66,7 @@ class QuestionnaireErrorAndEdgeTest {
     private fun transport(http: HttpClient, scope: CoroutineScope, ioDispatcher: CoroutineDispatcher) =
         EventTransport(
             endpoint = URL("https://ingest.example.com"),
-            apiKey = "owl_client_abc",
+            apiKey = "pulse_client_abc",
             bundleId = "com.example.app",
             compressionEnabled = false,
             offlineQueue = OfflineQueue(dir, scope),
@@ -254,7 +254,7 @@ class QuestionnaireErrorAndEdgeTest {
         // Required fields are always present.
         assertEquals("com.example.app", body.getString("bundle_id"))
         assertFalse(body.getBoolean("is_complete"))
-        assertEquals("owlmetry-android", body.getString("sdk_name"))
+        assertEquals("pubky-pulse-android", body.getString("sdk_name"))
     }
 
     @Test

@@ -173,9 +173,9 @@ internal fun PulseQuestionnaireProgressBar(current: Int, total: Int) {
     }
 }
 
-internal const val QUESTIONNAIRE_CONSENT_TAG: String = "owl_q_consent"
-internal const val QUESTIONNAIRE_CONSENT_ACCEPT_TAG: String = "owl_q_consent_accept"
-internal const val QUESTIONNAIRE_CONSENT_LATER_TAG: String = "owl_q_consent_later"
-internal const val QUESTIONNAIRE_CONSENT_NEVER_TAG: String = "owl_q_consent_never"
-internal const val QUESTIONNAIRE_SUCCESS_TAG: String = "owl_q_success"
-internal const val QUESTIONNAIRE_DONE_TAG: String = "owl_q_done"
+internal const val QUESTIONNAIRE_CONSENT_TAG: String = "pulse_q_consent"
+internal const val QUESTIONNAIRE_CONSENT_ACCEPT_TAG: String = "pulse_q_consent_accept"
+internal const val QUESTIONNAIRE_CONSENT_LATER_TAG: String = "pulse_q_consent_later"
+internal const val QUESTIONNAIRE_CONSENT_NEVER_TAG: String = "pulse_q_consent_never"
+internal const val QUESTIONNAIRE_SUCCESS_TAG: String = "pulse_q_success"
+internal const val QUESTIONNAIRE_DONE_TAG: String = "pulse_q_done"

@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Deeper [IdentityStore] coverage complementing [IdentityStoreTest]:
- *  - anonymous-id wire shape: `owl_anon_` + a canonical lowercase UUID (mirrors
+ *  - anonymous-id wire shape: `pulse_anon_` + a canonical lowercase UUID (mirrors
  *    Swift `"\(prefix)\(UUID().uuidString)"`);
  *  - cross-call uniqueness of freshly minted ids;
  *  - raw-key isolation between the two SharedPreferences keys so the Swift
@@ -36,7 +36,7 @@ class IdentityStoreDeepTest {
 
     private fun freshStore(): IdentityStore {
         val prefs = context.getSharedPreferences(
-            "owlmetry-identity-deep-${System.nanoTime()}",
+            "pulse-identity-deep-${System.nanoTime()}",
             Context.MODE_PRIVATE,
         )
         prefs.edit().clear().apply()
@@ -49,7 +49,7 @@ class IdentityStoreDeepTest {
     fun anonymousIdSuffixIsACanonicalUuid() {
         val id = freshStore().anonymousId()
         // The portion after the prefix must round-trip through UUID.fromString —
-        // proving "owl_anon_<uuid>" exactly like Swift's
+        // proving "pulse_anon_<uuid>" exactly like Swift's
         // "\(anonymousIdPrefix)\(UUID().uuidString)".
         val suffix = id.removePrefix(IdentityStore.ANONYMOUS_ID_PREFIX)
         assertEquals(36, suffix.length)
@@ -138,7 +138,7 @@ class IdentityStoreDeepTest {
 
     @Test
     fun savedUserIdRoundTripsVerbatimIncludingEdgeStrings() {
-        for (value in listOf("u", "", "  ", "user with spaces", "owl_anon_lookalike", "✓-unicode")) {
+        for (value in listOf("u", "", "  ", "user with spaces", "pulse_anon_lookalike", "✓-unicode")) {
             val store = freshStore()
             store.saveUserId(value)
             assertEquals(value, store.savedUserId())
@@ -185,11 +185,11 @@ class IdentityStoreDeepTest {
 
     @Test
     fun constantsMatchSwiftIdentityManager() {
-        assertEquals("owl_anon_", IdentityStore.ANONYMOUS_ID_PREFIX)
-        assertEquals("com.owlmetry.sdk", IdentityStore.PREFS_NAME)
-        // Swift keys: Keychain account "anonymousId" + UserDefaults "owlmetry.userId".
+        assertEquals("pulse_anon_", IdentityStore.ANONYMOUS_ID_PREFIX)
+        assertEquals("org.pubky.pulse.sdk", IdentityStore.PREFS_NAME)
+        // Swift keys: Keychain account "anonymousId" + UserDefaults "pulse.userId".
         assertEquals("anonymousId", IdentityStore.KEY_ANONYMOUS_ID)
-        assertEquals("owlmetry.userId", IdentityStore.KEY_USER_ID)
+        assertEquals("pulse.userId", IdentityStore.KEY_USER_ID)
         // The anon / user keys must differ so the split store can't self-collide.
         assertNotEquals(IdentityStore.KEY_ANONYMOUS_ID, IdentityStore.KEY_USER_ID)
         // The SDK prefs file is named after the Swift Keychain service.

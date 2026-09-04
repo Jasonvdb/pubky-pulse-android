@@ -47,8 +47,8 @@ class PulseIdentityTest {
     private fun configure() {
         Pulse.configure(
             context = context,
-            endpoint = "https://ingest.owlmetry.com",
-            apiKey = "owl_client_test",
+            endpoint = "https://ingest.pulse.pubky.org",
+            apiKey = "pulse_client_test",
         )
     }
 

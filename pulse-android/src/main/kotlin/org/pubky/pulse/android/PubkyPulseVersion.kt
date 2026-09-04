@@ -8,6 +8,6 @@ package org.pubky.pulse.android
  * the `sed` bump step in `.github/workflows/release.yml` can rewrite it.
  */
 public object PubkyPulseVersion {
-    public const val NAME: String = "owlmetry-android"
-    public const val CURRENT: String = "0.1.1"
+    public const val NAME: String = "pubky-pulse-android"
+    public const val CURRENT: String = "0.1.0"
 }

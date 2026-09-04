@@ -45,7 +45,7 @@ class QuestionnaireTransportTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-q", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-q", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -56,7 +56,7 @@ class QuestionnaireTransportTest {
     private fun transport(http: HttpClient, scope: CoroutineScope, ioDispatcher: CoroutineDispatcher) =
         EventTransport(
             endpoint = URL("https://ingest.example.com"),
-            apiKey = "owl_client_abc",
+            apiKey = "pulse_client_abc",
             bundleId = "com.example.app",
             compressionEnabled = false,
             offlineQueue = OfflineQueue(dir, scope),
@@ -92,7 +92,7 @@ class QuestionnaireTransportTest {
         val http = FakeHttpClient().apply { default = HttpResponse(200, schemaBody) }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
 
-        val outcome = tx.fetchQuestionnaire(slug = "nps", userId = "owl_anon_42", force = true)
+        val outcome = tx.fetchQuestionnaire(slug = "nps", userId = "pulse_anon_42", force = true)
         assertTrue(outcome is QuestionnaireFetchOutcome.Success)
         val result = (outcome as QuestionnaireFetchOutcome.Success).result
         assertEquals("nps", result.questionnaire?.slug)
@@ -105,9 +105,9 @@ class QuestionnaireTransportTest {
         val url = req.url.toString()
         assertTrue(url.contains("/v1/questionnaires/nps"))
         assertTrue(url.contains("bundle_id=com.example.app"))
-        assertTrue(url.contains("user_id=owl_anon_42"))
+        assertTrue(url.contains("user_id=pulse_anon_42"))
         assertTrue(url.contains("force=true"))
-        assertEquals("Bearer owl_client_abc", req.headers["Authorization"])
+        assertEquals("Bearer pulse_client_abc", req.headers["Authorization"])
     }
 
     @Test
@@ -140,7 +140,7 @@ class QuestionnaireTransportTest {
 
         val outcome = tx.saveQuestionnaireResponse(
             slug = "nps",
-            userId = "owl_anon_42",
+            userId = "pulse_anon_42",
             sessionId = "sess-1",
             answers = mapOf("n" to PulseQuestionnaireAnswerValue.NpsValue(8)),
             isComplete = true,
@@ -158,14 +158,14 @@ class QuestionnaireTransportTest {
         assertTrue(req.url.toString().endsWith("/v1/questionnaires/nps/responses"))
         val body = JSONObject(String(req.body!!, Charsets.UTF_8))
         assertEquals("com.example.app", body.getString("bundle_id"))
-        assertEquals("owl_anon_42", body.getString("user_id"))
+        assertEquals("pulse_anon_42", body.getString("user_id"))
         assertEquals("sess-1", body.getString("session_id"))
         assertEquals(true, body.getBoolean("is_complete"))
         assertEquals(true, body.getBoolean("is_dev"))
         assertEquals("android", body.getString("environment"))
         assertEquals("Pixel 8", body.getString("device_model"))
         assertEquals(8, body.getJSONObject("answers").getInt("n"))
-        assertEquals("owlmetry-android", body.getString("sdk_name"))
+        assertEquals("pubky-pulse-android", body.getString("sdk_name"))
     }
 
     @Test
@@ -189,7 +189,7 @@ class QuestionnaireTransportTest {
         }
         val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler))
 
-        val outcome = tx.submitQuestionnaireDismiss(userId = "owl_anon_42")
+        val outcome = tx.submitQuestionnaireDismiss(userId = "pulse_anon_42")
         assertTrue(outcome is QuestionnaireDismissOutcome.Success)
 
         val req = http.requests.first()
@@ -197,6 +197,6 @@ class QuestionnaireTransportTest {
         assertTrue(req.url.toString().endsWith("/v1/questionnaires/dismiss"))
         val body = JSONObject(String(req.body!!, Charsets.UTF_8))
         assertEquals("com.example.app", body.getString("bundle_id"))
-        assertEquals("owl_anon_42", body.getString("user_id"))
+        assertEquals("pulse_anon_42", body.getString("user_id"))
     }
 }

@@ -45,7 +45,7 @@ class ConsoleLoggerPrintTest {
         val entries = logs()
         assertEquals(1, entries.size)
         assertEquals(android.util.Log.INFO, entries[0].type)
-        assertEquals("🦉  INFO  hello", entries[0].msg)
+        assertEquals("[pulse] INFO  hello", entries[0].msg)
     }
 
     @Test
@@ -89,13 +89,13 @@ class ConsoleLoggerPrintTest {
 
     @Test
     fun stepPrefixWithEmptyBodyRewritesToBareStep() {
-        assertEquals("🦉  INFO  step: ", ConsoleLogger.format("step:", PulseLogLevel.INFO, null))
+        assertEquals("[pulse] INFO  step: ", ConsoleLogger.format("step:", PulseLogLevel.INFO, null))
     }
 
     @Test
     fun metricPrefixWithTrailingColonSplitsIntoEmptyPhase() {
         // "metric:name:" → name + empty phase → "metric: name " (trailing space).
-        assertEquals("🦉  INFO  metric: name ", ConsoleLogger.format("metric:name:", PulseLogLevel.INFO, null))
+        assertEquals("[pulse] INFO  metric: name ", ConsoleLogger.format("metric:name:", PulseLogLevel.INFO, null))
     }
 
     @Test
@@ -104,7 +104,7 @@ class ConsoleLoggerPrintTest {
         // suppressed — only the exact ":start" terminal suffix is.
         assertNull(ConsoleLogger.format("metric:x:start", PulseLogLevel.INFO, null))
         assertEquals(
-            "🦉  INFO  metric: x started",
+            "[pulse] INFO  metric: x started",
             ConsoleLogger.format("metric:x:started", PulseLogLevel.INFO, null),
         )
     }

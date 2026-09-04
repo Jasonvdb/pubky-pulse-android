@@ -69,7 +69,7 @@ class EventTransportDeepTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-txd", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-txd", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -86,7 +86,7 @@ class EventTransportDeepTest {
         ioDispatcher: CoroutineDispatcher,
     ) = EventTransport(
         endpoint = URL(endpoint),
-        apiKey = "owl_client_abc123",
+        apiKey = "pulse_client_abc123",
         bundleId = "com.example.app",
         compressionEnabled = compression,
         offlineQueue = OfflineQueue(dir, scope),
@@ -99,7 +99,7 @@ class EventTransportDeepTest {
     private fun event(id: String) = LogEvent(
         clientEventId = id,
         sessionId = "sess",
-        userId = "owl_anon_x",
+        userId = "pulse_anon_x",
         level = PulseLogLevel.INFO,
         sourceModule = null,
         message = "m",
@@ -108,7 +108,7 @@ class EventTransportDeepTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = null,
         deviceModel = "Pixel",
@@ -131,7 +131,7 @@ class EventTransportDeepTest {
         tx.enqueue(event("buffered-1"))
         tx.enqueue(event("buffered-2"))
 
-        tx.claimIdentity(anonymousId = "owl_anon_111", userId = "real-999")
+        tx.claimIdentity(anonymousId = "pulse_anon_111", userId = "real-999")
         testScheduler.advanceUntilIdle()
 
         assertEquals("buffered events flushed", 1, http.ingest().size)
@@ -151,7 +151,7 @@ class EventTransportDeepTest {
     fun `claimIdentity with an empty buffer posts only the claim`() = runTest {
         val http = FakeHttpClient()
         val tx = transport(http, FakeReachability(true), scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
-        tx.claimIdentity(anonymousId = "owl_anon_a", userId = "real-b")
+        tx.claimIdentity(anonymousId = "pulse_anon_a", userId = "real-b")
         testScheduler.advanceUntilIdle()
 
         assertEquals(0, http.ingest().size)
@@ -167,7 +167,7 @@ class EventTransportDeepTest {
     fun `claim retries on 5xx up to the retry limit`() = runTest {
         val http = FakeHttpClient().apply { default = HttpResponse(503, "down") }
         val tx = transport(http, FakeReachability(true), scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
-        tx.claimIdentity(anonymousId = "owl_anon_a", userId = "real-b")
+        tx.claimIdentity(anonymousId = "pulse_anon_a", userId = "real-b")
         testScheduler.advanceUntilIdle()
 
         assertEquals("5 claim attempts then give up", 5, http.claims().size)
@@ -178,7 +178,7 @@ class EventTransportDeepTest {
     fun `claim does not retry on 4xx`() = runTest {
         val http = FakeHttpClient().apply { default = HttpResponse(403, "forbidden") }
         val tx = transport(http, FakeReachability(true), scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
-        tx.claimIdentity(anonymousId = "owl_anon_a", userId = "real-b")
+        tx.claimIdentity(anonymousId = "pulse_anon_a", userId = "real-b")
         testScheduler.advanceUntilIdle()
 
         assertEquals(1, http.claims().size)

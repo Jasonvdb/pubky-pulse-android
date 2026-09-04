@@ -152,9 +152,9 @@ public class PulseQuestionnaireState internal constructor(
     }
 
     public companion object {
-        internal const val KEY_LAUNCH_COUNT: String = "owlmetry.questionnaire.launch_count"
-        internal const val KEY_FOREGROUND_COUNT: String = "owlmetry.questionnaire.foreground_count"
-        internal const val KEY_FIRST_LAUNCH_AT: String = "owlmetry.questionnaire.first_launch_at"
+        internal const val KEY_LAUNCH_COUNT: String = "pulse.questionnaire.launch_count"
+        internal const val KEY_FOREGROUND_COUNT: String = "pulse.questionnaire.foreground_count"
+        internal const val KEY_FIRST_LAUNCH_AT: String = "pulse.questionnaire.first_launch_at"
 
         /**
          * The process-wide state handle, published by [Pulse.configure] so the

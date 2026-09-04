@@ -69,7 +69,10 @@ dependencies {
 //   ORG_GRADLE_PROJECT_signingInMemoryKeyPassword — GPG key passphrase
 // (set as repo secrets / actions env so they reach the `publish` task).
 mavenPublishing {
-    coordinates(group.toString(), "pulse-android", version.toString())
+    // Group is spelled out here rather than read from `group`; keep it equal to
+    // GROUP in gradle.properties, which still names the module for inter-module
+    // POM dependencies.
+    coordinates("org.pubky.pulse", "pulse-android", version.toString())
 
     pom {
         name.set("Pubky Pulse Android SDK")
@@ -77,7 +80,7 @@ mavenPublishing {
             "Kotlin SDK for Android — event logging, metrics, funnels, identity, " +
                 "screen tracking, feedback, and questionnaires. Core module (framework + coroutines only)."
         )
-        url.set("https://owlmetry.com/github")
+        url.set("https://pulse.pubky.org")
         inceptionYear.set("2026")
 
         licenses {
@@ -90,16 +93,16 @@ mavenPublishing {
 
         developers {
             developer {
-                id.set("owlmetry")
+                id.set("pubky")
                 name.set("Pubky Pulse")
-                url.set("https://owlmetry.com")
+                url.set("https://pulse.pubky.org")
             }
         }
 
         scm {
-            url.set("https://github.com/owlmetry/owlmetry-android")
-            connection.set("scm:git:git://github.com/owlmetry/owlmetry-android.git")
-            developerConnection.set("scm:git:ssh://git@github.com/owlmetry/owlmetry-android.git")
+            url.set("https://github.com/pubky/pubky-pulse-android")
+            connection.set("scm:git:git://github.com/pubky/pubky-pulse-android.git")
+            developerConnection.set("scm:git:ssh://git@github.com/pubky/pubky-pulse-android.git")
         }
     }
 

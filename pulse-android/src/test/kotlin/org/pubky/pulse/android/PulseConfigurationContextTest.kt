@@ -27,8 +27,8 @@ class PulseConfigurationContextTest {
     fun resolvesBundleIdFromContextPackageName() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.owlmetry.com",
-            apiKey = "owl_client_abc123",
+            endpoint = "https://ingest.pulse.pubky.org",
+            apiKey = "pulse_client_abc123",
         )
         // The bundle ID is whatever the host app's Context reports as its
         // packageName (Android analog of Bundle.main.bundleIdentifier). Under
@@ -47,11 +47,11 @@ class PulseConfigurationContextTest {
     fun acceptsValidConfigThroughContextFactory() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.owlmetry.com/",
-            apiKey = "owl_client_live_xyz",
+            endpoint = "https://ingest.pulse.pubky.org/",
+            apiKey = "pulse_client_live_xyz",
         )
-        assertEquals("owl_client_live_xyz", config.apiKey)
-        assertEquals("ingest.owlmetry.com", config.endpoint.host)
+        assertEquals("pulse_client_live_xyz", config.apiKey)
+        assertEquals("ingest.pulse.pubky.org", config.endpoint.host)
         assertEquals("https", config.endpoint.scheme)
         // Defaults mirror the Swift initializer defaults (all true).
         assertTrue(config.flushOnBackground)
@@ -65,8 +65,8 @@ class PulseConfigurationContextTest {
     fun honorsNonDefaultFlagsThroughContextFactory() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.owlmetry.com",
-            apiKey = "owl_client_abc",
+            endpoint = "https://ingest.pulse.pubky.org",
+            apiKey = "pulse_client_abc",
             flushOnBackground = false,
             compressionEnabled = false,
             networkTrackingEnabled = false,
@@ -85,11 +85,11 @@ class PulseConfigurationContextTest {
         val e = assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "https://ingest.owlmetry.com",
-                apiKey = "owl_agent_abc",
+                endpoint = "https://ingest.pulse.pubky.org",
+                apiKey = "pulse_agent_abc",
             )
         }
-        assertEquals("API key must start with \"owl_client_\"", e.message)
+        assertEquals("API key must start with \"pulse_client_\"", e.message)
     }
 
     @Test
@@ -97,7 +97,7 @@ class PulseConfigurationContextTest {
         assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "https://ingest.owlmetry.com",
+                endpoint = "https://ingest.pulse.pubky.org",
                 apiKey = "totally_wrong",
             )
         }
@@ -109,7 +109,7 @@ class PulseConfigurationContextTest {
             PulseConfiguration.create(
                 context = context,
                 endpoint = "not a url",
-                apiKey = "owl_client_abc",
+                apiKey = "pulse_client_abc",
             )
         }
     }
@@ -119,8 +119,8 @@ class PulseConfigurationContextTest {
         assertThrows(PulseConfigurationError.InvalidEndpoint::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "ingest.owlmetry.com/v1/ingest",
-                apiKey = "owl_client_abc",
+                endpoint = "ingest.pulse.pubky.org/v1/ingest",
+                apiKey = "pulse_client_abc",
             )
         }
     }
@@ -131,7 +131,7 @@ class PulseConfigurationContextTest {
             PulseConfiguration.create(
                 context = context,
                 endpoint = "ftp://example.com",
-                apiKey = "owl_client_abc",
+                apiKey = "pulse_client_abc",
             )
         }
     }
@@ -142,7 +142,7 @@ class PulseConfigurationContextTest {
             PulseConfiguration.create(
                 context = context,
                 endpoint = "ftp://example.com",
-                apiKey = "owl_client_abc",
+                apiKey = "pulse_client_abc",
             )
         }
         assertEquals("ftp://example.com", e.value)

@@ -6,9 +6,9 @@ import android.util.Log
  * Mirrors the Swift `Pulse.printToConsole` developer-console echo. Swift prints to
  * stdout via `print`; the Android analog is Logcat ([android.util.Log]) under
  * the [TAG] tag, with the level mapped to the matching Logcat priority. The
- * human-readable line is byte-identical to Swift's: a `🦉` prefix, a fixed-width
- * level tag, the (possibly rewritten) message, and a sorted `{k=v, …}` attribute
- * suffix.
+ * human-readable line is byte-identical to the other Pubky Pulse SDKs': a
+ * `[pulse] ` prefix, a fixed-width level tag, the (possibly rewritten) message,
+ * and a sorted `{k=v, …}` attribute suffix.
  *
  * Suppression + rewriting rules match Swift exactly:
  *  - `sdk:` internal events are never echoed.
@@ -71,7 +71,7 @@ internal object ConsoleLogger {
             else -> message
         }
 
-        var line = "🦉  $tag $displayMessage"
+        var line = "[pulse] $tag $displayMessage"
         if (!attributes.isNullOrEmpty()) {
             val pairs = attributes.entries
                 .sortedBy { it.key }

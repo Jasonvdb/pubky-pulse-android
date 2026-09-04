@@ -4,7 +4,7 @@
   (Android 12+ / API 31+), which supersedes `android:fullBackupContent`.
 
   Same intent as pubky_pulse_backup_rules.xml: persist the SDK's identity prefs
-  (`com.owlmetry.sdk` SharedPreferences — anonymous id + optional real user id,
+  (`org.pubky.pulse.sdk` SharedPreferences — anonymous id + optional real user id,
   see IdentityStore) so the anonymous id survives a reinstall best-effort. On
   Android 12+ the framework splits backup into two channels, declared
   separately here:
@@ -29,10 +29,10 @@
 <data-extraction-rules>
     <cloud-backup>
         <!-- Roams the SDK identity prefs to a reinstall via Google cloud backup. -->
-        <include domain="sharedpref" path="com.owlmetry.sdk.xml" />
+        <include domain="sharedpref" path="org.pubky.pulse.sdk.xml" />
     </cloud-backup>
     <device-transfer>
         <!-- Carries the SDK identity prefs across a device-to-device migration. -->
-        <include domain="sharedpref" path="com.owlmetry.sdk.xml" />
+        <include domain="sharedpref" path="org.pubky.pulse.sdk.xml" />
     </device-transfer>
 </data-extraction-rules>

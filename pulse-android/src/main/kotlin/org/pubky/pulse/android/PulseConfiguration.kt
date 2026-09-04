@@ -6,7 +6,7 @@ import java.net.URISyntaxException
 
 /**
  * Immutable SDK configuration. Mirrors the Swift `PulseConfiguration`:
- * validates the endpoint URL, the `owl_client_` API-key prefix, and a non-empty
+ * validates the endpoint URL, the `pulse_client_` API-key prefix, and a non-empty
  * bundle ID, throwing [PulseConfigurationError] on any failure.
  *
  * Swift resolves `bundleId` from `Bundle.main.bundleIdentifier`; on Android the
@@ -24,7 +24,7 @@ public class PulseConfiguration private constructor(
     public val attributionEnabled: Boolean,
 ) {
     public companion object {
-        private const val CLIENT_KEY_PREFIX = "owl_client_"
+        private const val CLIENT_KEY_PREFIX = "pulse_client_"
 
         /**
          * Primary factory. Resolves the bundle ID from [context], validates the

@@ -45,7 +45,7 @@ class PulseAttachmentModelTest {
 
     @Test
     fun `file factory defaults name to the file's own name`() {
-        val file = File("/tmp/owl-screens/screenshot.png")
+        val file = File("/tmp/pulse-screens/screenshot.png")
         val att = PulseAttachment.file(file)
 
         assertEquals("screenshot.png", att.name)
@@ -57,7 +57,7 @@ class PulseAttachmentModelTest {
 
     @Test
     fun `file factory allows overriding the server-visible name`() {
-        val file = File("/tmp/owl-screens/IMG_0001.HEIC")
+        val file = File("/tmp/pulse-screens/IMG_0001.HEIC")
         val att = PulseAttachment.file(file, name = "crash-screenshot.heic", contentType = "image/heic")
 
         assertEquals("crash-screenshot.heic", att.name)
@@ -81,14 +81,14 @@ class PulseAttachmentModelTest {
 
     @Test
     fun `FileSource is a data class equal by file`() {
-        val f = File("/tmp/owl-screens/x.png")
+        val f = File("/tmp/pulse-screens/x.png")
         assertEquals(
             PulseAttachment.Source.FileSource(f),
-            PulseAttachment.Source.FileSource(File("/tmp/owl-screens/x.png")),
+            PulseAttachment.Source.FileSource(File("/tmp/pulse-screens/x.png")),
         )
         assertNotEquals(
             PulseAttachment.Source.FileSource(f),
-            PulseAttachment.Source.FileSource(File("/tmp/owl-screens/y.png")),
+            PulseAttachment.Source.FileSource(File("/tmp/pulse-screens/y.png")),
         )
     }
 }

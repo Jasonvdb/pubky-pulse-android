@@ -89,7 +89,7 @@ class PulseLoggingTest {
         Pulse.configure(
             context = context,
             endpoint = "https://ingest.example.com",
-            apiKey = "owl_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            apiKey = "pulse_client_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             // No gzip so recorded bodies are plain JSON; no console noise.
             compressionEnabled = false,
             networkTrackingEnabled = false,

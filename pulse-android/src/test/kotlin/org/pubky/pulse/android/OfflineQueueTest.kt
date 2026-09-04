@@ -30,7 +30,7 @@ class OfflineQueueTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-offline", "").let {
+        dir = File.createTempFile("pulse-offline", "").let {
             it.delete()
             it.mkdirs()
             it
@@ -45,7 +45,7 @@ class OfflineQueueTest {
     private fun event(id: String) = LogEvent(
         clientEventId = id,
         sessionId = "sess",
-        userId = "owl_anon_x",
+        userId = "pulse_anon_x",
         level = PulseLogLevel.INFO,
         sourceModule = null,
         message = "m-$id",
@@ -54,7 +54,7 @@ class OfflineQueueTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = null,
         deviceModel = "Pixel",

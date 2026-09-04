@@ -64,7 +64,7 @@ class EventTransportTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-tx", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-tx", "").let { it.delete(); it.mkdirs(); it }
         scope = CoroutineScope(StandardTestDispatcher())
     }
 
@@ -81,7 +81,7 @@ class EventTransportTest {
         ioDispatcher: CoroutineDispatcher,
     ) = EventTransport(
         endpoint = URL("https://ingest.example.com"),
-        apiKey = "owl_client_abc123",
+        apiKey = "pulse_client_abc123",
         bundleId = "com.example.app",
         compressionEnabled = compression,
         offlineQueue = OfflineQueue(dir, scope),
@@ -94,7 +94,7 @@ class EventTransportTest {
     private fun event(id: String) = LogEvent(
         clientEventId = id,
         sessionId = "sess",
-        userId = "owl_anon_x",
+        userId = "pulse_anon_x",
         level = PulseLogLevel.INFO,
         sourceModule = null,
         message = "m",
@@ -103,7 +103,7 @@ class EventTransportTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = null,
         deviceModel = "Pixel",
@@ -125,7 +125,7 @@ class EventTransportTest {
         val req = http.requests.first()
         assertEquals("POST", req.method)
         assertTrue(req.url.toString().endsWith("/v1/ingest"))
-        assertEquals("Bearer owl_client_abc123", req.headers["Authorization"])
+        assertEquals("Bearer pulse_client_abc123", req.headers["Authorization"])
         assertEquals("application/json", req.headers["Content-Type"])
 
         val body = JSONObject(String(req.body!!, Charsets.UTF_8))
@@ -233,13 +233,13 @@ class EventTransportTest {
     fun `claimIdentity posts to the claim endpoint with both ids`() = runTest {
         val http = FakeHttpClient()
         val tx = transport(http, FakeReachability(true), scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
-        tx.claimIdentity(anonymousId = "owl_anon_111", userId = "real-999")
+        tx.claimIdentity(anonymousId = "pulse_anon_111", userId = "real-999")
         testScheduler.advanceUntilIdle()
 
         val claim = http.requests.firstOrNull { it.url.toString().endsWith("/v1/identity/claim") }
         assertNotNull(claim)
         val body = JSONObject(String(claim!!.body!!, Charsets.UTF_8))
-        assertEquals("owl_anon_111", body.getString("anonymous_id"))
+        assertEquals("pulse_anon_111", body.getString("anonymous_id"))
         assertEquals("real-999", body.getString("user_id"))
     }
 

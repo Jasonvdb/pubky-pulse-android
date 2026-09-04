@@ -32,7 +32,7 @@ class OfflineQueueDeepTest {
 
     @Before
     fun setUp() {
-        dir = File.createTempFile("owl-offline-deep", "").let { it.delete(); it.mkdirs(); it }
+        dir = File.createTempFile("pulse-offline-deep", "").let { it.delete(); it.mkdirs(); it }
     }
 
     @After
@@ -52,7 +52,7 @@ class OfflineQueueDeepTest {
         environment = PulsePlatform.ANDROID,
         osVersion = "14",
         appVersion = null,
-        sdkName = "owlmetry-android",
+        sdkName = "pubky-pulse-android",
         sdkVersion = "0.1.0",
         buildNumber = null,
         deviceModel = "Pixel",
@@ -117,8 +117,8 @@ class OfflineQueueDeepTest {
     @Test
     fun `a corrupt backing file loads as an empty queue`() = runTest {
         // Write garbage where the queue expects a JSON array.
-        val owlDir = File(dir, "owlmetry").apply { mkdirs() }
-        File(owlDir, "offline_queue.json").writeText("}{ not json at all [[[")
+        val pulseDir = File(dir, "pulse").apply { mkdirs() }
+        File(pulseDir, "offline_queue.json").writeText("}{ not json at all [[[")
 
         val queue = OfflineQueue(dir, backgroundScope)
         assertTrue("corrupt file → empty queue, no crash", queue.isEmpty())
@@ -136,8 +136,8 @@ class OfflineQueueDeepTest {
      */
     @Test
     fun `a wrong-shape json file loads as an empty queue`() = runTest {
-        val owlDir = File(dir, "owlmetry").apply { mkdirs() }
-        File(owlDir, "offline_queue.json").writeText("""{"not":"an array"}""")
+        val pulseDir = File(dir, "pulse").apply { mkdirs() }
+        File(pulseDir, "offline_queue.json").writeText("""{"not":"an array"}""")
 
         val queue = OfflineQueue(dir, backgroundScope)
         assertTrue(queue.isEmpty())
@@ -156,5 +156,21 @@ class OfflineQueueDeepTest {
         // No time advanced — the file must already be there.
         val reloaded = OfflineQueue(dir, backgroundScope)
         assertEquals(1, reloaded.count())
+    }
+
+    /**
+     * Exact pin on the on-disk storage name: the queue lives at
+     * `<filesDir>/pulse/offline_queue.json`. The directory is created and read
+     * only by [OfflineQueue] itself, so a half-done rename would round-trip
+     * happily here while orphaning every already-queued event on a real device.
+     */
+    @Test
+    fun `the backing file lives in a directory named pulse`() = runTest {
+        val queue = OfflineQueue(dir, backgroundScope)
+        queue.enqueue(event("on-disk"))
+        queue.persistNow()
+
+        assertEquals(listOf("pulse"), dir.list()!!.sorted())
+        assertTrue(File(dir, "pulse/offline_queue.json").isFile)
     }
 }

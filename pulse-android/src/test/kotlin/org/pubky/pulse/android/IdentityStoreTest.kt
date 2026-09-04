@@ -13,7 +13,7 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Verifies [IdentityStore] under Robolectric (real [android.content.SharedPreferences]).
  * Mirrors the Swift `IdentityManager` contract: the anonymous id is generated
- * once, persisted, read-through stable, `owl_anon_`-prefixed, and resettable;
+ * once, persisted, read-through stable, `pulse_anon_`-prefixed, and resettable;
  * the real user id is saved/cleared independently of the anonymous id.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -25,7 +25,7 @@ class IdentityStoreTest {
     /** Fresh store over a uniquely-named prefs file so cases don't bleed. */
     private fun freshStore(): IdentityStore {
         val prefs = context.getSharedPreferences(
-            "owlmetry-identity-test-${System.nanoTime()}",
+            "pulse-identity-test-${System.nanoTime()}",
             Context.MODE_PRIVATE,
         )
         prefs.edit().clear().apply()
@@ -36,7 +36,7 @@ class IdentityStoreTest {
     fun anonymousIdIsGeneratedWithExpectedPrefix() {
         val id = freshStore().anonymousId()
         assertTrue(
-            "anonymous id must carry the owl_anon_ prefix, got: $id",
+            "anonymous id must carry the pulse_anon_ prefix, got: $id",
             id.startsWith(IdentityStore.ANONYMOUS_ID_PREFIX),
         )
         assertTrue(id.length > IdentityStore.ANONYMOUS_ID_PREFIX.length)
@@ -55,7 +55,7 @@ class IdentityStoreTest {
         // Same backing prefs file → a brand-new IdentityStore must read the
         // already-persisted id rather than mint a new one (launch persistence).
         val prefs = context.getSharedPreferences(
-            "owlmetry-identity-persist-${System.nanoTime()}",
+            "pulse-identity-persist-${System.nanoTime()}",
             Context.MODE_PRIVATE,
         )
         prefs.edit().clear().apply()
