@@ -192,8 +192,12 @@ class EventTransportTest {
         assertTrue("re-delivered after recovery", http.requests.size > 5)
     }
 
+    /**
+     * A 4xx other than 429 is permanent — one request, no retry. (429 is the
+     * exception and *is* retried; see [EventTransportDeepTest].)
+     */
     @Test
-    fun `4xx is not retried`() = runTest {
+    fun `a permanent 4xx is not retried`() = runTest {
         val http = FakeHttpClient().apply { default = HttpResponse(400, "bad") }
         val tx = transport(http, FakeReachability(true), scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
         tx.enqueue(event("a"))
