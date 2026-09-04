@@ -16,9 +16,13 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -28,9 +32,10 @@ import kotlin.math.pow
  *
  * Swift's `EventTransport` is an `actor` (serialized access to `buffer`), with a
  * background flush `Task` looping every 5 s, batching 20 events per `/v1/ingest`
- * POST, gzip-compressing bodies ≥ 512 B, retrying transport/5xx failures up to 5
- * times with exponential backoff capped at 30 s, and routing undelivered batches
- * to the [OfflineQueue]. This port mirrors all of that:
+ * POST, gzip-compressing bodies ≥ 512 B, retrying transport/5xx/429 failures up
+ * to 5 times with exponential backoff capped at 30 s (raised to a server-sent
+ * `Retry-After`, itself capped at 60 s), and routing undelivered batches to the
+ * [OfflineQueue]. This port mirrors all of that:
  *  - a [Mutex] serializes `buffer` mutation (the actor analog under the
  *    coroutines-only dependency rule),
  *  - a flush loop launched on [scope] (`while isActive { delay(5s); flush() }`)
@@ -43,6 +48,12 @@ import kotlin.math.pow
  * periodic flush / flushAll loop to return before POSTing the claim, so the
  * server's `UPDATE events` can't run while ingest POSTs are mid-transaction and
  * orphan rows under the anon id. See CLAUDE.md "Identity".
+ *
+ * A batch handed to [send] has already left `buffer`, and the retry ladder can
+ * hold it for up to ~61 s. [inFlightBatches] keeps those batches reachable so
+ * [persistBufferToDisk] can park them on the [OfflineQueue] before the process
+ * dies — otherwise a batch that is mid-retry when Android kills the process is
+ * simply lost.
  */
 internal class EventTransport(
     endpoint: URL,
@@ -80,6 +91,17 @@ internal class EventTransport(
     private var inFlightSendCount = 0
     private val sendDrainContinuations = ArrayList<Continuation<Unit>>()
 
+    // The batches currently inside [send], keyed by a monotonic id. Insertion
+    // order (a LinkedHashMap) is oldest-first, which is the order
+    // [persistBufferToDisk] parks them in. Guarded by [inFlightMutex].
+    private val inFlightBatches = LinkedHashMap<Long, InFlightBatch>()
+    private var nextInFlightBatchId = 0L
+
+    /** A batch inside [send]; [persisted] flips once it is on the offline queue. */
+    private class InFlightBatch(val events: List<LogEvent>) {
+        var persisted = false
+    }
+
     companion object {
         private const val TAG = "PubkyPulse.transport"
 
@@ -88,7 +110,12 @@ internal class EventTransport(
         private const val FLUSH_INTERVAL_MS = 5_000L
         private const val MAX_RETRIES = 5
         private const val MAX_BACKOFF_SECONDS = 30.0
+        // Ceiling on a server-requested `Retry-After`; a hostile or mistaken
+        // header must not park a send for minutes.
+        private const val MAX_RETRY_AFTER_SECONDS = 60.0
         private const val COMPRESSION_THRESHOLD = 512
+        private const val STATUS_TOO_MANY_REQUESTS = 429
+        private const val STATUS_SERVICE_UNAVAILABLE = 503
     }
 
     /** Start the periodic flush loop. Idempotent. Mirrors Swift's `start()`. */
@@ -221,18 +248,35 @@ internal class EventTransport(
     }
 
     /**
-     * Move the in-memory buffer to the offline queue and force a disk write.
-     * Called when the host app backgrounds (if `flushOnBackground` is off) so
-     * buffered events survive process death. Mirrors Swift's `persistBufferToDisk`.
+     * Move the in-memory buffer — and any batch still inside [send] — to the
+     * offline queue, then force a disk write. Called when the host app
+     * backgrounds so pending events survive process death. Mirrors Swift's
+     * `persistBufferToDisk`.
+     *
+     * A batch handed to [send] is no longer in `buffer` and its retry ladder can
+     * suspend for up to ~61 s, so persisting only `buffer` would lose it if
+     * Android killed the process mid-retry. Those batches are parked first
+     * (oldest first, ahead of the buffer) so replay order is preserved, and each
+     * is marked persisted so a second persist during the same send — and the
+     * send's own failure path — never append a duplicate copy.
      */
     suspend fun persistBufferToDisk() {
-        val pending = bufferMutex.withLock {
-            if (buffer.isEmpty()) return
+        val inFlight = inFlightMutex.withLock {
+            val out = ArrayList<LogEvent>()
+            for (batch in inFlightBatches.values) {
+                if (batch.persisted) continue
+                batch.persisted = true
+                out.addAll(batch.events)
+            }
+            out
+        }
+        val buffered = bufferMutex.withLock {
             val out = ArrayList(buffer)
             buffer.clear()
             out
         }
-        offlineQueue.enqueue(pending)
+        if (inFlight.isEmpty() && buffered.isEmpty()) return
+        offlineQueue.enqueue(inFlight + buffered)
         offlineQueue.persistNow()
     }
 
@@ -502,17 +546,29 @@ internal class EventTransport(
 
     /**
      * POST one ingest batch, tracking it as in-flight so [claimIdentity] can
-     * drain. Mirrors Swift's `send(_:)`.
+     * drain and [persistBufferToDisk] can park it. Mirrors Swift's `send(_:)`.
+     *
+     * Reports the batch as handled when [persistBufferToDisk] parked it, so the
+     * caller does not route a second copy to the offline queue. That can mean a
+     * duplicate delivery once the queue replays — ingest deduplicates on
+     * `client_event_id`, so a duplicate is cheap where a loss is not.
      */
     private suspend fun send(events: List<LogEvent>): Boolean {
         val body = IngestRequestBody(bundleId, events).toJsonString().toByteArray(Charsets.UTF_8)
         val request = makeRequest(ingestUrl, body)
 
-        inFlightMutex.withLock { inFlightSendCount += 1 }
+        val batchId = inFlightMutex.withLock {
+            val id = nextInFlightBatchId++
+            inFlightBatches[id] = InFlightBatch(events)
+            inFlightSendCount += 1
+            id
+        }
         try {
-            return performWithRetry(request, "Ingest")
+            val delivered = performWithRetry(request, "Ingest") { isBatchPersisted(batchId) }
+            return delivered || isBatchPersisted(batchId)
         } finally {
             val waiters = inFlightMutex.withLock {
+                inFlightBatches.remove(batchId)
                 inFlightSendCount -= 1
                 if (inFlightSendCount == 0) {
                     val w = ArrayList(sendDrainContinuations)
@@ -525,6 +581,10 @@ internal class EventTransport(
             for (waiter in waiters) waiter.resume(Unit)
         }
     }
+
+    /** Whether [persistBufferToDisk] has already parked this in-flight batch. */
+    private suspend fun isBatchPersisted(batchId: Long): Boolean =
+        inFlightMutex.withLock { inFlightBatches[batchId]?.persisted == true }
 
     /**
      * Suspend until every in-flight ingest send has returned. Mirrors Swift's
@@ -566,17 +626,35 @@ internal class EventTransport(
     }
 
     /**
-     * Execute [request] with retries. Does not retry 4xx (client errors won't
-     * succeed); retries transport failures + 5xx up to [MAX_RETRIES] with
-     * exponential backoff capped at [MAX_BACKOFF_SECONDS]. Mirrors Swift's
-     * `performWithRetry`.
+     * Execute [request] with retries. Retries transport failures, 5xx and 429
+     * (rate limiting is transient — dropping the batch there is how a throttled
+     * app silently loses data) up to [MAX_RETRIES]; every other 4xx is permanent
+     * and returns immediately. Backoff is exponential, capped at
+     * [MAX_BACKOFF_SECONDS], raised to a server-sent `Retry-After` on the two
+     * statuses that carry one. Mirrors Swift's `performWithRetry`.
+     *
+     * [isHandled] lets an ingest send abandon the ladder early once
+     * [persistBufferToDisk] has parked its batch on the offline queue: the batch
+     * is already durable, so there is nothing left to wait ~61 s for.
      */
-    private suspend fun performWithRetry(request: HttpRequest, label: String): Boolean {
+    private suspend fun performWithRetry(
+        request: HttpRequest,
+        label: String,
+        isHandled: suspend () -> Boolean = { false },
+    ): Boolean {
         for (attempt in 0 until MAX_RETRIES) {
+            if (attempt > 0 && isHandled()) {
+                Log.i(TAG, "$label batch already persisted offline, stopping retries")
+                return false
+            }
+
             val result = withContext(ioDispatcher) {
                 runCatching { httpClient.execute(request) }
             }
 
+            // Set by a 429/503 that carried a parsable Retry-After; drives the
+            // backoff for the next attempt only.
+            var retryAfterSeconds: Double? = null
             result.onSuccess { response ->
                 val code = response.statusCode
                 if (code in 200..299) {
@@ -585,9 +663,12 @@ internal class EventTransport(
                     }
                     return true
                 }
-                if (code in 400..499) {
+                if (code in 400..499 && code != STATUS_TOO_MANY_REQUESTS) {
                     Log.w(TAG, "$label returned $code, not retrying")
                     return false
+                }
+                if (code == STATUS_TOO_MANY_REQUESTS || code == STATUS_SERVICE_UNAVAILABLE) {
+                    retryAfterSeconds = parseRetryAfterSeconds(response.header("Retry-After"))
                 }
                 Log.w(TAG, "$label returned $code, attempt ${attempt + 1}/$MAX_RETRIES")
             }.onFailure { error ->
@@ -595,11 +676,39 @@ internal class EventTransport(
             }
 
             if (attempt < MAX_RETRIES - 1) {
-                val backoff = min(2.0.pow(attempt), MAX_BACKOFF_SECONDS)
-                delay((backoff * 1000).toLong())
+                delay((retryDelaySeconds(attempt, retryAfterSeconds) * 1000).toLong())
             }
         }
         return false
+    }
+
+    /**
+     * Seconds to wait before attempt `attempt + 1`: the exponential ladder
+     * (2^attempt capped at [MAX_BACKOFF_SECONDS]), never shortened by a
+     * server-requested [retryAfterSeconds] and never stretched past
+     * [MAX_RETRY_AFTER_SECONDS].
+     */
+    private fun retryDelaySeconds(attempt: Int, retryAfterSeconds: Double?): Double {
+        val backoff = min(2.0.pow(attempt), MAX_BACKOFF_SECONDS)
+        if (retryAfterSeconds == null) return backoff
+        return min(max(retryAfterSeconds, backoff), MAX_RETRY_AFTER_SECONDS)
+    }
+
+    /**
+     * Parse a `Retry-After` value: either delta-seconds or an HTTP-date (RFC
+     * 9110 §10.2.3). Returns null when absent or unparsable so the caller falls
+     * back to the plain ladder; a date already in the past yields 0.
+     */
+    private fun parseRetryAfterSeconds(value: String?): Double? {
+        val raw = value?.trim()
+        if (raw.isNullOrEmpty()) return null
+        raw.toLongOrNull()?.let { return if (it < 0) null else it.toDouble() }
+        val date = runCatching {
+            SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
+                .apply { timeZone = TimeZone.getTimeZone("GMT") }
+                .parse(raw)
+        }.getOrNull() ?: return null
+        return max((date.time - System.currentTimeMillis()) / 1000.0, 0.0)
     }
 
     /** Pull `rejected` out of a 2xx ingest body if present. Best-effort. */
@@ -667,11 +776,20 @@ internal data class HttpRequest(
     }
 }
 
-/** A minimal HTTP response. */
+/**
+ * A minimal HTTP response. [headers] carries only what the transport reads back
+ * (`Retry-After`); it defaults to empty so the many call sites that only care
+ * about status + body stay two-argument.
+ */
 internal data class HttpResponse(
     val statusCode: Int,
     val body: String?,
-)
+    val headers: Map<String, String> = emptyMap(),
+) {
+    /** Look up a header, case-insensitively as HTTP field names require. */
+    fun header(name: String): String? =
+        headers.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+}
 
 /**
  * The transport's HTTP seam — the analog of injecting a `URLSession` into the
@@ -700,7 +818,12 @@ internal object DefaultHttpClient : HttpClient {
             val code = connection.responseCode
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val body = stream?.bufferedReader()?.use(BufferedReader::readText)
-            return HttpResponse(statusCode = code, body = body)
+            val headers = LinkedHashMap<String, String>()
+            for ((name, values) in connection.headerFields) {
+                // headerFields carries a null key for the status line; skip it.
+                if (name != null) headers[name] = values.joinToString(", ")
+            }
+            return HttpResponse(statusCode = code, body = body, headers = headers)
         } finally {
             connection.disconnect()
         }

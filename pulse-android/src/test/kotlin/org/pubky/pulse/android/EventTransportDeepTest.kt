@@ -337,6 +337,132 @@ class EventTransportDeepTest {
     }
 
     /**
+     * A 429 is a *transient* rate limit, not a permanent client error: treating
+     * it like the rest of the 4xx range would silently drop the batch the moment
+     * the app is throttled. It retries, and a `Retry-After` longer than the
+     * ladder's own backoff wins — here 2 s against a 1 s first backoff.
+     */
+    @Test
+    fun `a 429 waits out Retry-After and then succeeds`() = runTest {
+        val http = FakeHttpClient().apply {
+            scripted.add(HttpResponse(429, "slow down", mapOf("Retry-After" to "2")))
+            // Everything after the first attempt falls through to the 200 default.
+        }
+        val txScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = txScope,
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        tx.enqueue(event("throttled"))
+        txScope.launch { tx.flush() }
+        runCurrent()
+
+        assertEquals("first attempt fired", 1, http.ingest().size)
+
+        // The plain ladder would have retried at 1 s; Retry-After: 2 holds it.
+        advanceTimeBy(1_500)
+        runCurrent()
+        assertEquals("still honouring Retry-After at 1.5 s", 1, http.ingest().size)
+
+        advanceTimeBy(600)
+        runCurrent()
+        assertEquals("retried once Retry-After elapsed", 2, http.ingest().size)
+
+        testScheduler.advanceUntilIdle()
+        assertEquals("the retry succeeded, no further attempts", 2, http.ingest().size)
+        assertTrue("delivered, so nothing re-queued", OfflineQueue(dir, txScope).isEmpty())
+    }
+
+    /** A 429 with no usable Retry-After still retries, on the plain ladder. */
+    @Test
+    fun `a 429 without Retry-After retries on the exponential ladder`() = runTest {
+        val http = FakeHttpClient().apply { default = HttpResponse(429, "slow down") }
+        val txScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = txScope,
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        tx.enqueue(event("throttled"))
+        txScope.launch { tx.flush() }
+        runCurrent()
+        assertEquals("only the first attempt before any backoff", 1, http.ingest().size)
+
+        advanceTimeBy(1_001) // 2^0 = 1 s, the unmodified ladder
+        runCurrent()
+        assertEquals("second attempt after the 1 s backoff", 2, http.ingest().size)
+
+        testScheduler.advanceUntilIdle()
+        assertEquals("five attempts then give up", 5, http.ingest().size)
+    }
+
+    /**
+     * A batch inside `send` has already left `buffer` and its retry ladder can
+     * hold it for ~61 s, so a background persist that only walked `buffer` would
+     * lose it outright if Android killed the process. `persistBufferToDisk` must
+     * park the in-flight batch too — exactly once, and without the send's own
+     * failure path appending a second copy.
+     */
+    @Test
+    fun `persistBufferToDisk parks an in-flight batch exactly once`() = runTest {
+        val http = FakeHttpClient().apply { default = HttpResponse(503, "down") }
+        val txScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = txScope,
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        tx.enqueue(event("mid-retry"))
+        txScope.launch { tx.flush() }
+        runCurrent()
+        assertEquals("the batch is inside send, mid-ladder", 1, http.ingest().size)
+
+        // The app backgrounds while the batch is between retry attempts.
+        tx.persistBufferToDisk()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the ladder stops once the batch is durable",
+            1,
+            http.ingest().size,
+        )
+        assertEquals(
+            listOf("mid-retry"),
+            OfflineQueue(dir, txScope).drain().map { it.clientEventId },
+        )
+    }
+
+    /** A second background persist during the same send must not duplicate it. */
+    @Test
+    fun `a second persistBufferToDisk during the same send adds no duplicate`() = runTest {
+        val http = FakeHttpClient().apply { default = HttpResponse(503, "down") }
+        val txScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val tx = transport(
+            http,
+            FakeReachability(true),
+            scope = txScope,
+            ioDispatcher = UnconfinedTestDispatcher(testScheduler),
+        )
+        tx.enqueue(event("mid-retry"))
+        txScope.launch { tx.flush() }
+        runCurrent()
+
+        tx.persistBufferToDisk()
+        tx.persistBufferToDisk()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("the ladder still stops on the first persist", 1, http.ingest().size)
+        assertEquals(
+            listOf("mid-retry"),
+            OfflineQueue(dir, txScope).drain().map { it.clientEventId },
+        )
+    }
+
+    /**
      * Buffer overflow drops the OLDEST events past MAX_BUFFER_SIZE (10 000).
      * Mirrors Swift's `buffer.removeFirst(buffer.count - maxBufferSize)`. We
      * enqueue 10 005, flush in batches, and assert the first 5 never ship.

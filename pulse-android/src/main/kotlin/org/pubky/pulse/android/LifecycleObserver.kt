@@ -77,8 +77,9 @@ internal class LifecycleObserver(
             transport.flushAll()
             // Durable backstop: anything appended during the flush (including the
             // sdk:app_backgrounded event above, still hopping the dedup filter →
-            // transport) is persisted to disk so it survives process death after
-            // ON_STOP. Mirrors Swift's watchOS handler.
+            // transport) plus any batch still working through the retry ladder is
+            // persisted to disk so it survives process death after ON_STOP.
+            // Mirrors Swift's watchOS handler.
             transport.persistBufferToDisk()
         }
     }
