@@ -9,5 +9,5 @@ package org.pubky.pulse.android
  */
 public object PubkyPulseVersion {
     public const val NAME: String = "pubky-pulse-android"
-    public const val CURRENT: String = "0.1.0"
+    public const val CURRENT: String = "0.1.1"
 }
