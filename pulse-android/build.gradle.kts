@@ -100,9 +100,9 @@ mavenPublishing {
         }
 
         scm {
-            url.set("https://github.com/pubky/pubky-pulse-android")
-            connection.set("scm:git:git://github.com/pubky/pubky-pulse-android.git")
-            developerConnection.set("scm:git:ssh://git@github.com/pubky/pubky-pulse-android.git")
+            url.set("https://github.com/Jasonvdb/pubky-pulse-android")
+            connection.set("scm:git:git://github.com/Jasonvdb/pubky-pulse-android.git")
+            developerConnection.set("scm:git:ssh://git@github.com/Jasonvdb/pubky-pulse-android.git")
         }
     }
 

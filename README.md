@@ -34,7 +34,7 @@ dependencies {
 }
 ```
 
-> See [releases](https://github.com/pubky/pubky-pulse-android/releases/latest)
+> See [releases](https://github.com/Jasonvdb/pubky-pulse-android/releases/latest)
 > for the latest version.
 
 ## Quickstart
