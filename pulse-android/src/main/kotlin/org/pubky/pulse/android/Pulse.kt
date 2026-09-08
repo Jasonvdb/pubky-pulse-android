@@ -155,7 +155,7 @@ public object Pulse {
      * info, mints a session id, derives `isDev` from the host app's debuggable
      * flag, and **resolves persistent identity**: reads (or generates) the
      * anonymous id and prefers any saved real user id over it. Throws
-     * [PulseConfigurationError] on invalid endpoint / API key / missing bundle id
+     * [PulseConfigurationError] on invalid endpoint / API key
      * (mirrors Swift's throwing `configure`).
      *
      * Starts the [EventTransport] flush loop and — when a previously saved real
