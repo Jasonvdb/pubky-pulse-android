@@ -65,7 +65,14 @@ Register the `Application` subclass in your manifest:
 ```
 
 `configure` validates its input and throws `PulseConfigurationError` on an
-invalid endpoint, API key, or missing package name.
+invalid endpoint or API key. The client key identifies exactly one app; no
+separate app identifier is required. The package name is collected automatically
+as optional `bundle_id` metadata and omitted when unavailable. It is not used to
+authorize or route requests.
+
+Requests without bundle metadata require a server that supports client-key-only
+app association. Upgrade the server before upgrading clients that lack metadata;
+existing clients that send a package name remain compatible.
 
 `endpoint` is optional and defaults to `https://ingest.pubkypulse.com`, Pubky's
 own hosted ingest host. The fallback is silent — nothing is logged or thrown —

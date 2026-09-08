@@ -54,14 +54,13 @@ class PulseConfigurationTest {
     }
 
     @Test
-    fun rejectsEmptyBundleId() {
-        assertThrows(PulseConfigurationError.MissingBundleId::class.java) {
-            PulseConfiguration.create(
-                endpoint = "https://ingest.example.com",
-                apiKey = "pulse_client_abc",
-                bundleId = "",
-            )
-        }
+    fun acceptsEmptyBundleMetadata() {
+        val config = PulseConfiguration.create(
+            endpoint = "https://ingest.example.com",
+            apiKey = "pulse_client_abc",
+            bundleId = "",
+        )
+        assertEquals("", config.bundleId)
     }
 
     /**

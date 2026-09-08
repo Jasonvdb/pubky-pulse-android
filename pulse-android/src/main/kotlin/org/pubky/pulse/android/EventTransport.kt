@@ -430,11 +430,14 @@ internal class EventTransport(
         userId: String?,
         force: Boolean = false,
     ): QuestionnaireFetchOutcome {
-        val query = StringBuilder("?bundle_id=").append(bundleId.urlQueryEncoded())
-        if (userId != null) query.append("&user_id=").append(userId.urlQueryEncoded())
-        if (force) query.append("&force=true")
+        val queryItems = buildList {
+            if (bundleId.isNotEmpty()) add("bundle_id=${bundleId.urlQueryEncoded()}")
+            if (userId != null) add("user_id=${userId.urlQueryEncoded()}")
+            if (force) add("force=true")
+        }
+        val query = if (queryItems.isEmpty()) "" else queryItems.joinToString("&", prefix = "?")
 
-        val url = runCatching { URL(questionnaireUrl(slug).toString() + query.toString()) }
+        val url = runCatching { URL(questionnaireUrl(slug).toString() + query) }
             .getOrElse { return QuestionnaireFetchOutcome.Failure(PulseQuestionnaireError.TransportFailure("invalid URL")) }
 
         val request = HttpRequest(
@@ -509,7 +512,7 @@ internal class EventTransport(
         isDev: Boolean,
     ): QuestionnaireSaveOutcome {
         val payload = JSONObject().apply {
-            put("bundle_id", bundleId)
+            if (bundleId.isNotEmpty()) put("bundle_id", bundleId)
             sessionId?.let { put("session_id", it) }
             userId?.let { put("user_id", it) }
             put("answers", encodeAnswers(answers))
@@ -560,7 +563,7 @@ internal class EventTransport(
      */
     suspend fun submitQuestionnaireDismiss(userId: String): QuestionnaireDismissOutcome {
         val payload = JSONObject().apply {
-            put("bundle_id", bundleId)
+            if (bundleId.isNotEmpty()) put("bundle_id", bundleId)
             put("user_id", userId)
         }
         val httpBody = runCatching { payload.toString().toByteArray(Charsets.UTF_8) }

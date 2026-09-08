@@ -30,8 +30,8 @@ internal data class FeedbackRequestBody(
 ) {
     fun toJson(): JSONObject {
         val obj = JSONObject()
-        // Required fields are always written.
-        obj.put("bundle_id", bundleId)
+        // Bundle metadata is omitted when unavailable.
+        if (bundleId.isNotEmpty()) obj.put("bundle_id", bundleId)
         obj.put("message", message)
         // Optionals are omitted when null — Swift's encoder drops nil optionals.
         sessionId?.let { obj.put("session_id", it) }

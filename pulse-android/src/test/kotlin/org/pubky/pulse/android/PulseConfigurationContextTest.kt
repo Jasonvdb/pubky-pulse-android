@@ -1,6 +1,7 @@
 package org.pubky.pulse.android
 
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -22,6 +23,27 @@ class PulseConfigurationContextTest {
 
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun acceptsUnavailablePackageMetadataThroughPublicFactory() {
+        for (packageName in listOf(null, "")) {
+            val missingMetadata = object : ContextWrapper(context) {
+                override fun getPackageName(): String? = packageName
+            }
+            val config = PulseConfiguration.create(
+                context = missingMetadata,
+                apiKey = "pulse_client_abc123",
+            )
+            assertEquals("", config.bundleId)
+            assertEquals("ingest.pubkypulse.com", config.endpoint.host)
+            assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
+                PulseConfiguration.create(context = missingMetadata, apiKey = "pulse_agent_abc")
+            }
+            assertThrows(PulseConfigurationError.InvalidEndpoint::class.java) {
+                PulseConfiguration.create(context = missingMetadata, endpoint = "", apiKey = "pulse_client_abc")
+            }
+        }
+    }
 
     @Test
     fun resolvesBundleIdFromContextPackageName() {

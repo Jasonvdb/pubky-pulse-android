@@ -151,7 +151,7 @@ public data class LogEvent(
 }
 
 /**
- * The `/v1/ingest` request envelope: `{ "bundle_id": ..., "events": [...] }`.
+ * The `/v1/ingest` request envelope, with optional bundle metadata.
  * Mirrors Swift's `IngestRequestBody`.
  */
 public data class IngestRequestBody(
@@ -160,7 +160,7 @@ public data class IngestRequestBody(
 ) {
     public fun toJson(): JSONObject {
         val obj = JSONObject()
-        obj.put("bundle_id", bundleId)
+        if (bundleId.isNotEmpty()) obj.put("bundle_id", bundleId)
         val arr = JSONArray()
         for (event in events) {
             arr.put(event.toJson())

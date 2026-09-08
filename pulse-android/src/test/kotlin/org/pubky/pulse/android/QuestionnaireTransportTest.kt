@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -53,11 +54,16 @@ class QuestionnaireTransportTest {
         dir.deleteRecursively()
     }
 
-    private fun transport(http: HttpClient, scope: CoroutineScope, ioDispatcher: CoroutineDispatcher) =
+    private fun transport(
+        http: HttpClient,
+        scope: CoroutineScope,
+        ioDispatcher: CoroutineDispatcher,
+        bundleId: String = "com.example.app",
+    ) =
         EventTransport(
             endpoint = URL("https://ingest.example.com"),
             apiKey = "pulse_client_abc",
-            bundleId = "com.example.app",
+            bundleId = bundleId,
             compressionEnabled = false,
             offlineQueue = OfflineQueue(dir, scope),
             networkMonitor = FakeReachability(true),
@@ -108,6 +114,51 @@ class QuestionnaireTransportTest {
         assertTrue(url.contains("user_id=pulse_anon_42"))
         assertTrue(url.contains("force=true"))
         assertEquals("Bearer pulse_client_abc", req.headers["Authorization"])
+    }
+
+    @Test
+    fun `fetch preserves query encoding with and without bundle metadata`() = runTest {
+        for (bundleId in listOf("", "com.example.app")) {
+            for (userId in listOf(null, "user +&?")) {
+                for (force in listOf(false, true)) {
+                    val http = FakeHttpClient().apply { default = HttpResponse(200, schemaBody) }
+                    val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler), bundleId)
+                    val outcome = tx.fetchQuestionnaire("nps", userId, force)
+                    assertTrue(outcome is QuestionnaireFetchOutcome.Success)
+
+                    val request = http.requests.single()
+                    val expected = buildList {
+                        if (bundleId.isNotEmpty()) add("bundle_id=com.example.app")
+                        if (userId != null) add("user_id=user+%2B%26%3F")
+                        if (force) add("force=true")
+                    }.joinToString("&").ifEmpty { null }
+                    assertEquals(expected, request.url.query)
+                    assertEquals("Bearer pulse_client_abc", request.headers["Authorization"])
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `save and dismiss omit unavailable bundle metadata`() = runTest {
+        val http = FakeHttpClient().apply {
+            default = HttpResponse(200, """{"id":"response-1","was_submitted":true,"dismissed_at":"2026-06-04T12:00:00.000Z"}""")
+        }
+        val tx = transport(http, backgroundScope, StandardTestDispatcher(testScheduler), bundleId = "")
+        val saved = tx.saveQuestionnaireResponse(
+            slug = "nps", userId = "pulse_anon_42", sessionId = null,
+            answers = emptyMap(), isComplete = false,
+            deviceInfo = deviceInfo, environment = "android", appVersion = null, isDev = false,
+        )
+        assertTrue(saved is QuestionnaireSaveOutcome.Success)
+        assertTrue(tx.submitQuestionnaireDismiss("pulse_anon_42") is QuestionnaireDismissOutcome.Success)
+        assertEquals(2, http.requests.size)
+        for (request in http.requests) {
+            val body = JSONObject(String(request.body!!, Charsets.UTF_8))
+            assertFalse(body.has("bundle_id"))
+            assertEquals("pulse_anon_42", body.getString("user_id"))
+            assertEquals("Bearer pulse_client_abc", request.headers["Authorization"])
+        }
     }
 
     @Test

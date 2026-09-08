@@ -6,12 +6,12 @@ import java.net.URISyntaxException
 
 /**
  * Immutable SDK configuration. Mirrors the Swift `PulseConfiguration`:
- * validates the endpoint URL, the `pulse_client_` API-key prefix, and a non-empty
- * bundle ID, throwing [PulseConfigurationError] on any failure.
+ * validates the endpoint URL and the `pulse_client_` API-key prefix, throwing
+ * [PulseConfigurationError] on failure. The client key identifies the app.
  *
  * Swift resolves `bundleId` from `Bundle.main.bundleIdentifier`; on Android the
- * analog is `context.packageName` (e.g. `com.example.app`). The validated values
- * are kept on the instance so the transport layer can read them later.
+ * analog is `context.packageName` (e.g. `com.example.app`). This is optional
+ * metadata, represented by an empty string when unavailable and omitted on the wire.
  */
 public class PulseConfiguration private constructor(
     public val endpoint: URI,
@@ -52,10 +52,7 @@ public class PulseConfiguration private constructor(
             consoleLogging: Boolean = true,
             attributionEnabled: Boolean = true,
         ): PulseConfiguration {
-            val bundleId = context.packageName
-            if (bundleId.isNullOrEmpty()) {
-                throw PulseConfigurationError.MissingBundleId
-            }
+            val bundleId = context.packageName.orEmpty()
             return create(
                 endpoint = endpoint,
                 apiKey = apiKey,
@@ -95,9 +92,6 @@ public class PulseConfiguration private constructor(
                 throw PulseConfigurationError.InvalidApiKey(
                     "API key must start with \"$CLIENT_KEY_PREFIX\"",
                 )
-            }
-            if (bundleId.isEmpty()) {
-                throw PulseConfigurationError.MissingBundleId
             }
             return PulseConfiguration(
                 endpoint = uri,
@@ -148,6 +142,7 @@ public sealed class PulseConfigurationError(message: String) : Exception(message
     public class InvalidApiKey(message: String) :
         PulseConfigurationError(message)
 
+    /** Retained for source compatibility; missing metadata no longer throws. */
     public object MissingBundleId :
         PulseConfigurationError(
             "Bundle ID could not be determined. Ensure the app has a valid bundle identifier.",

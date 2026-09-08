@@ -79,10 +79,11 @@ class EventTransportTest {
         compression: Boolean = false,
         scope: CoroutineScope,
         ioDispatcher: CoroutineDispatcher,
+        bundleId: String = "com.example.app",
     ) = EventTransport(
         endpoint = URL("https://ingest.example.com"),
         apiKey = "pulse_client_abc123",
-        bundleId = "com.example.app",
+        bundleId = bundleId,
         compressionEnabled = compression,
         offlineQueue = OfflineQueue(dir, scope),
         networkMonitor = reachability,
@@ -131,6 +132,23 @@ class EventTransportTest {
         val body = JSONObject(String(req.body!!, Charsets.UTF_8))
         assertEquals("com.example.app", body.getString("bundle_id"))
         assertEquals(1, body.getJSONArray("events").length())
+    }
+
+    @Test
+    fun `flush omits unavailable bundle metadata`() = runTest {
+        val http = FakeHttpClient()
+        val tx = transport(
+            http, FakeReachability(true), scope = backgroundScope,
+            ioDispatcher = StandardTestDispatcher(testScheduler), bundleId = "",
+        )
+        tx.enqueue(event("without-bundle"))
+        tx.flush()
+
+        val req = http.requests.single()
+        val body = JSONObject(String(req.body!!, Charsets.UTF_8))
+        assertFalse(body.has("bundle_id"))
+        assertEquals(1, body.getJSONArray("events").length())
+        assertEquals("Bearer pulse_client_abc123", req.headers["Authorization"])
     }
 
     @Test

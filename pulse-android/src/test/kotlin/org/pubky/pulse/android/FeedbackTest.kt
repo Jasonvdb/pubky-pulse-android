@@ -178,6 +178,18 @@ class FeedbackTest {
     }
 
     @Test
+    fun `submitFeedback omits unavailable bundle metadata`() = runBlocking {
+        val result = transport(http).submitFeedback(feedbackBody().copy(bundleId = ""))
+
+        assertTrue(result is FeedbackResult.Success)
+        val request = http.feedbackRequests().single()
+        val body = JSONObject(request.body!!.toString(Charsets.UTF_8))
+        assertFalse(body.has("bundle_id"))
+        assertEquals("hello", body.getString("message"))
+        assertEquals("Bearer pulse_client_abc", request.headers["Authorization"])
+    }
+
+    @Test
     fun `submitFeedback returns ServerError with the body verbatim on non-2xx`() = runBlocking {
         http.feedbackScript.add(HttpResponse(422, """{"error":"message too long"}"""))
         val tx = transport(http)
