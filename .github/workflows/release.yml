@@ -207,16 +207,21 @@ jobs:
           echo "already_released=$already_released" >> "$GITHUB_OUTPUT"
           echo "Next version: $next (from '$msg'), already released: $already_released"
 
-      # Skipped when the tag already exists, which is what a rerun of a
-      # partially-failed release looks like: main already carries the bump
-      # commit, so committing and pushing again would fail non-fast-forward and
-      # strand the release. The release step below has its own skip-if-exists
-      # guard, so a rerun completes only the parts that are missing.
-      - name: Commit, tag, push
-        if: ${{ steps.ver.outputs.already_released != 'true' }}
+      # Deliberately NOT guarded by the rerun check below: this step is what
+      # puts the released version into the working tree for the Maven publish at
+      # the end of the job. The checkout sits at the triggering commit, whose
+      # tree still holds the PRE-release version, so on a rerun — where "Commit,
+      # tag, push" is skipped because the atomic push already landed — a guarded
+      # write would leave the publish reading that stale VERSION_NAME and
+      # republishing the previous coordinate (0.0.0 on the very first release).
+      # On that skip path the tree is intentionally left dirty with the released
+      # version and nothing commits it; that is expected, not a bug, because
+      # main already carries the bump commit from the run that pushed it. Do not
+      # resolve this by checking out the tag instead — the ungated write is the
+      # shape the other SDK repos use.
+      - name: Write the released version
         env:
           VERSION: ${{ steps.ver.outputs.version }}
-          NEXT: ${{ steps.ver.outputs.next }}
         run: |
           # Both files hold plain semver, with no leading "v", and they move
           # together. VERSION_NAME is the PUBLISHED Maven coordinate
@@ -239,6 +244,18 @@ jobs:
             exit 1
           fi
 
+      # Skipped when the tag already exists, which is what a rerun of a
+      # partially-failed release looks like: main already carries the bump
+      # commit, so committing and pushing again would fail non-fast-forward and
+      # strand the release. The release step below has its own skip-if-exists
+      # guard, so a rerun completes only the parts that are missing. Note that
+      # "Write the released version" above is deliberately NOT guarded — it is
+      # what puts the released version into the tree for the publish step.
+      - name: Commit, tag, push
+        if: ${{ steps.ver.outputs.already_released != 'true' }}
+        env:
+          NEXT: ${{ steps.ver.outputs.next }}
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$VERSION_FILE" "$KOTLIN_VERSION_FILE"
