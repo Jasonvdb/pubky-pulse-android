@@ -7,13 +7,13 @@
 Kotlin SDK for Android — event logging, structured metrics, funnels, identity,
 screen tracking, a drop-in user feedback view, and in-app questionnaires, all
 delivered to your own Pubky Pulse server. It mirrors the
-[Swift SDK](https://pulse.pubky.org/docs/sdks/swift) feature-for-feature with
+[Swift SDK](https://pubkypulse.com/docs/sdks/swift) feature-for-feature with
 Android-native idioms. The core module has a single runtime dependency
 (`kotlinx-coroutines`, the analog of Swift Concurrency); the optional Jetpack
 Compose UI lives in a separate artifact so non-Compose apps stay lean.
 
 **Full setup guide & API reference:
-[pulse.pubky.org/docs/sdks/android](https://pulse.pubky.org/docs/sdks/android)**
+[pubkypulse.com/docs/sdks/android](https://pubkypulse.com/docs/sdks/android)**
 
 ## Modules
 
@@ -51,7 +51,6 @@ class MyApp : Application() {
         super.onCreate()
         Pulse.configure(
             context = this,
-            endpoint = "https://ingest.pulse.pubky.org",
             apiKey = "pulse_client_...",
         )
         Pulse.info("app_launched")
@@ -67,6 +66,11 @@ Register the `Application` subclass in your manifest:
 
 `configure` validates its input and throws `PulseConfigurationError` on an
 invalid endpoint, API key, or missing package name.
+
+`endpoint` is optional and defaults to `https://ingest.pubkypulse.com`, Pubky's
+own hosted ingest host. The fallback is silent — nothing is logged or thrown —
+so if you run your own server, pass `endpoint = "https://ingest.example.com"`
+explicitly or your events go to Pubky's instance instead of yours.
 
 ## Examples
 
@@ -191,8 +195,9 @@ The SDK collects **analytics events, diagnostics/crash data, and product
 interaction**, plus — only when you opt in — a **user id** (`Pulse.setUser`) and
 **feedback name/email** (the `PulseFeedbackView` contact fields). It is **not**
 used for tracking or advertising (no Advertising ID, no `AD_ID` permission), is
-**not shared** with third parties (events go only to your own ingest endpoint),
-and is **encrypted in transit** over HTTPS.
+**not shared** with third parties (events go only to the configured ingest
+endpoint — your own server, or Pubky's hosted host when you leave `endpoint`
+unset), and is **encrypted in transit** over HTTPS.
 
 Before publishing, complete Google Play's **Data safety** form. The SDK ships a
 guide that maps each SDK behavior to the exact form entries:

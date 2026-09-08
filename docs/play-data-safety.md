@@ -7,9 +7,9 @@ shows a summary of your answers on the store listing.
 
 This SDK collects analytics on your behalf, so its collection becomes *your*
 collection in the form. This page is the Android analog of the Swift SDK's
-[privacy compliance guide](https://pulse.pubky.org/docs/sdks/swift/privacy-compliance);
+[privacy compliance guide](https://pubkypulse.com/docs/sdks/swift/privacy-compliance);
 the Android reference lives at
-[pulse.pubky.org/docs/sdks/android/privacy-compliance](https://pulse.pubky.org/docs/sdks/android/privacy-compliance).
+[pubkypulse.com/docs/sdks/android/privacy-compliance](https://pubkypulse.com/docs/sdks/android/privacy-compliance).
 It tells you exactly which Data safety entries to tick. It is guidance, not legal
 advice — you remain the data controller and are responsible for the final
 declaration (your own app may collect more than the SDK does).
@@ -21,8 +21,10 @@ declaration (your own app may collect more than the SDK does).
   **feedback name/email** (the `PulseFeedbackView` contact fields).
 - It is **not** used for tracking or advertising. No advertising ID, no IDFA/GAID
   access, no cross-app/cross-site tracking, no ad SDKs.
-- Data is **not shared** with third parties — it goes only to *your* Pubky Pulse
-  ingest endpoint.
+- Data goes only to the configured Pubky Pulse ingest endpoint. That is a
+  first-party destination — **not shared** — when you run the server; if you
+  leave `endpoint` unset it defaults to Pubky's hosted host, a separate company,
+  and Play would call that **Shared**.
 - All transport is **encrypted in transit** over HTTPS.
 - Users can **request deletion** server-side (best-effort — see below).
 
@@ -66,11 +68,13 @@ Answer these the same way for the SDK's collection:
   `NSPrivacyTracking = false`.)
 - **No Advertising ID.** The SDK does not request, read, or transmit the Google
   Advertising ID (GAID). It declares no `AD_ID` permission and links no ad SDKs.
-- **Not shared with third parties.** "Sharing" in Play's sense means transfer to
-  a *separate* company. The SDK transmits only to **your** Pubky Pulse ingest
-  endpoint — the URL you pass to `Pulse.configure(endpoint = …)`. That's a
-  first-party destination you control, so declare collection as **"Collected,"**
-  not **"Shared."**
+- **Not shared with third parties** *when you host the endpoint.* "Sharing" in
+  Play's sense means transfer to a *separate* company. The SDK transmits only to
+  the URL you pass to `Pulse.configure(endpoint = …)`; if that is your own Pubky
+  Pulse server, it is a first-party destination you control, so declare
+  collection as **"Collected,"** not **"Shared."** Omitting `endpoint` silently
+  sends to Pubky's hosted host instead — a separate company, which you must
+  declare as **"Shared."**
 - **No location, contacts, photos, files, messages, or audio** are collected by
   the SDK. (Your app may attach files to events via the attachments API — those
   are content *you* choose to upload, not anything the SDK harvests.)
@@ -116,5 +120,5 @@ collection or sharing event for Data safety purposes.
 ---
 
 When in doubt, declare more rather than less, and keep this page in sync with the
-[Android privacy compliance guide](https://pulse.pubky.org/docs/sdks/android/privacy-compliance)
+[Android privacy compliance guide](https://pubkypulse.com/docs/sdks/android/privacy-compliance)
 as the SDK evolves.
