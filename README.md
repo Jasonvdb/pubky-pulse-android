@@ -67,8 +67,10 @@ Register the `Application` subclass in your manifest:
 `configure` validates its input and throws `PulseConfigurationError` on an
 invalid endpoint or API key. The client key identifies exactly one app; no
 separate app identifier is required. The package name is collected automatically
-as optional `bundle_id` metadata and omitted when unavailable. It is not used to
-authorize or route requests.
+as `bundle_id` and omitted when unavailable. For a key belonging to an Apple or
+Android app, the server rejects a supplied identifier that differs from the
+registered one, catching wrong-key configuration. Updated servers accept an absent
+identifier; keys belonging to web or backend apps skip identifier validation.
 
 Requests without bundle metadata require a server that supports client-key-only
 app association. Upgrade the server before upgrading clients that lack metadata;

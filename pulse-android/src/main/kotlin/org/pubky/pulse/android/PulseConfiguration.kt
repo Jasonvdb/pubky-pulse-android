@@ -10,8 +10,9 @@ import java.net.URISyntaxException
  * [PulseConfigurationError] on failure. The client key identifies the app.
  *
  * Swift resolves `bundleId` from `Bundle.main.bundleIdentifier`; on Android the
- * analog is `context.packageName` (e.g. `com.example.app`). This is optional
- * metadata, represented by an empty string when unavailable and omitted on the wire.
+ * analog is `context.packageName` (e.g. `com.example.app`). The server checks
+ * supplied identifiers for native app keys. An unavailable identifier is represented
+ * by an empty string and omitted on the wire; updated servers accept its absence.
  */
 public class PulseConfiguration private constructor(
     public val endpoint: URI,
