@@ -27,7 +27,7 @@ class PulseConfigurationContextTest {
     fun resolvesBundleIdFromContextPackageName() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.pulse.pubky.org",
+            endpoint = "https://ingest.example.com",
             apiKey = "pulse_client_abc123",
         )
         // The bundle ID is whatever the host app's Context reports as its
@@ -47,11 +47,11 @@ class PulseConfigurationContextTest {
     fun acceptsValidConfigThroughContextFactory() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.pulse.pubky.org/",
+            endpoint = "https://ingest.example.com/",
             apiKey = "pulse_client_live_xyz",
         )
         assertEquals("pulse_client_live_xyz", config.apiKey)
-        assertEquals("ingest.pulse.pubky.org", config.endpoint.host)
+        assertEquals("ingest.example.com", config.endpoint.host)
         assertEquals("https", config.endpoint.scheme)
         // Defaults mirror the Swift initializer defaults (all true).
         assertTrue(config.flushOnBackground)
@@ -65,7 +65,7 @@ class PulseConfigurationContextTest {
     fun honorsNonDefaultFlagsThroughContextFactory() {
         val config = PulseConfiguration.create(
             context = context,
-            endpoint = "https://ingest.pulse.pubky.org",
+            endpoint = "https://ingest.example.com",
             apiKey = "pulse_client_abc",
             flushOnBackground = false,
             compressionEnabled = false,
@@ -85,7 +85,7 @@ class PulseConfigurationContextTest {
         val e = assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "https://ingest.pulse.pubky.org",
+                endpoint = "https://ingest.example.com",
                 apiKey = "pulse_agent_abc",
             )
         }
@@ -97,7 +97,7 @@ class PulseConfigurationContextTest {
         assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "https://ingest.pulse.pubky.org",
+                endpoint = "https://ingest.example.com",
                 apiKey = "totally_wrong",
             )
         }
@@ -119,7 +119,7 @@ class PulseConfigurationContextTest {
         assertThrows(PulseConfigurationError.InvalidEndpoint::class.java) {
             PulseConfiguration.create(
                 context = context,
-                endpoint = "ingest.pulse.pubky.org/v1/ingest",
+                endpoint = "ingest.example.com/v1/ingest",
                 apiKey = "pulse_client_abc",
             )
         }
@@ -147,5 +147,48 @@ class PulseConfigurationContextTest {
         }
         assertEquals("ftp://example.com", e.value)
         assertEquals("Invalid endpoint URL: ftp://example.com", e.message)
+    }
+
+    /**
+     * Omitting `endpoint` on the public factory falls back to Pubky's hosted
+     * ingest host. The fallback is silent, so this pins where an omitted
+     * endpoint actually sends data.
+     */
+    @Test
+    fun defaultsOmittedEndpointToPubkyHostedIngestThroughContextFactory() {
+        val config = PulseConfiguration.create(
+            context = context,
+            apiKey = "pulse_client_abc123",
+        )
+        assertEquals("ingest.pubkypulse.com", config.endpoint.host)
+        assertEquals("https", config.endpoint.scheme)
+    }
+
+    /**
+     * Only an *absent* endpoint falls back. An explicitly empty one is almost
+     * always an environment variable that failed to load, and silently
+     * redirecting it to Pubky's instance would send a self-hoster's data to the
+     * wrong company — so it still throws.
+     */
+    @Test
+    fun rejectsExplicitlyEmptyEndpointThroughContextFactory() {
+        assertThrows(PulseConfigurationError.InvalidEndpoint::class.java) {
+            PulseConfiguration.create(
+                context = context,
+                endpoint = "",
+                apiKey = "pulse_client_abc",
+            )
+        }
+    }
+
+    /** A supplied endpoint is used verbatim; the default never overrides it. */
+    @Test
+    fun explicitEndpointWinsOverTheDefaultThroughContextFactory() {
+        val config = PulseConfiguration.create(
+            context = context,
+            endpoint = "https://ingest.example.com",
+            apiKey = "pulse_client_abc",
+        )
+        assertEquals("https://ingest.example.com", config.endpoint.toString())
     }
 }

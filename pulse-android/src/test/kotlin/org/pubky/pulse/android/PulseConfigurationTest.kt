@@ -10,20 +10,20 @@ class PulseConfigurationTest {
     @Test
     fun acceptsValidHttpsEndpointAndClientKey() {
         val config = PulseConfiguration.create(
-            endpoint = "https://ingest.pulse.pubky.org",
+            endpoint = "https://ingest.example.com",
             apiKey = "pulse_client_abc123",
             bundleId = "com.example.app",
         )
         assertEquals("com.example.app", config.bundleId)
         assertEquals("pulse_client_abc123", config.apiKey)
-        assertEquals("ingest.pulse.pubky.org", config.endpoint.host)
+        assertEquals("ingest.example.com", config.endpoint.host)
     }
 
     @Test
     fun rejectsNonClientApiKey() {
         val e = assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
             PulseConfiguration.create(
-                endpoint = "https://ingest.pulse.pubky.org",
+                endpoint = "https://ingest.example.com",
                 apiKey = "pulse_agent_abc",
                 bundleId = "com.example.app",
             )
@@ -57,7 +57,7 @@ class PulseConfigurationTest {
     fun rejectsEmptyBundleId() {
         assertThrows(PulseConfigurationError.MissingBundleId::class.java) {
             PulseConfiguration.create(
-                endpoint = "https://ingest.pulse.pubky.org",
+                endpoint = "https://ingest.example.com",
                 apiKey = "pulse_client_abc",
                 bundleId = "",
             )
@@ -74,7 +74,7 @@ class PulseConfigurationTest {
     fun clientKeyPrefixIsExactlyPulseClient() {
         val prefix = "pulse_client_"
         val config = PulseConfiguration.create(
-            endpoint = "https://ingest.pulse.pubky.org",
+            endpoint = "https://ingest.example.com",
             apiKey = prefix + "abc",
             bundleId = "com.example.app",
         )
@@ -83,11 +83,54 @@ class PulseConfigurationTest {
         for (length in prefix.indices) {
             assertThrows(PulseConfigurationError.InvalidApiKey::class.java) {
                 PulseConfiguration.create(
-                    endpoint = "https://ingest.pulse.pubky.org",
+                    endpoint = "https://ingest.example.com",
                     apiKey = prefix.substring(0, length) + "abc",
                     bundleId = "com.example.app",
                 )
             }
         }
+    }
+
+    /**
+     * Omitting `endpoint` falls back to Pubky's hosted ingest host. The
+     * fallback is silent, so this pins exactly where an omitted endpoint sends
+     * data — a self-hoster must pass their own host to avoid it.
+     */
+    @Test
+    fun defaultsOmittedEndpointToPubkyHostedIngest() {
+        val config = PulseConfiguration.create(
+            apiKey = "pulse_client_abc123",
+            bundleId = "com.example.app",
+        )
+        assertEquals("ingest.pubkypulse.com", config.endpoint.host)
+        assertEquals("https", config.endpoint.scheme)
+    }
+
+    /**
+     * Only an *absent* endpoint falls back. An explicitly empty one is almost
+     * always an environment variable that failed to load, and silently
+     * redirecting it to Pubky's instance would send a self-hoster's data to the
+     * wrong company — so it still throws.
+     */
+    @Test
+    fun rejectsExplicitlyEmptyEndpoint() {
+        assertThrows(PulseConfigurationError.InvalidEndpoint::class.java) {
+            PulseConfiguration.create(
+                endpoint = "",
+                apiKey = "pulse_client_abc",
+                bundleId = "com.example.app",
+            )
+        }
+    }
+
+    /** A supplied endpoint is used verbatim; the default never overrides it. */
+    @Test
+    fun explicitEndpointWinsOverTheDefault() {
+        val config = PulseConfiguration.create(
+            endpoint = "https://ingest.example.com",
+            apiKey = "pulse_client_abc",
+            bundleId = "com.example.app",
+        )
+        assertEquals("https://ingest.example.com", config.endpoint.toString())
     }
 }

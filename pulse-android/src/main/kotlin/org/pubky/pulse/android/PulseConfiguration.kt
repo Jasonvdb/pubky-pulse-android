@@ -27,6 +27,16 @@ public class PulseConfiguration private constructor(
         private const val CLIENT_KEY_PREFIX = "pulse_client_"
 
         /**
+         * Pubky's own hosted ingest host, used when the caller omits `endpoint`.
+         *
+         * The fallback is silent — nothing is logged, warned, or thrown when it
+         * is taken — so a self-hoster must pass their own ingest host
+         * explicitly, or their data silently goes to Pubky's instance instead
+         * of theirs.
+         */
+        public const val DEFAULT_ENDPOINT: String = "https://ingest.pubkypulse.com"
+
+        /**
          * Primary factory. Resolves the bundle ID from [context], validates the
          * endpoint and API key, and returns a configuration or throws an
          * [PulseConfigurationError]. Mirrors Swift's throwing `init`.
@@ -34,7 +44,7 @@ public class PulseConfiguration private constructor(
         @Throws(PulseConfigurationError::class)
         public fun create(
             context: Context,
-            endpoint: String,
+            endpoint: String = DEFAULT_ENDPOINT,
             apiKey: String,
             flushOnBackground: Boolean = true,
             compressionEnabled: Boolean = true,
@@ -64,7 +74,7 @@ public class PulseConfiguration private constructor(
          */
         @Throws(PulseConfigurationError::class)
         internal fun create(
-            endpoint: String,
+            endpoint: String = DEFAULT_ENDPOINT,
             apiKey: String,
             bundleId: String,
             flushOnBackground: Boolean = true,
@@ -73,6 +83,13 @@ public class PulseConfiguration private constructor(
             consoleLogging: Boolean = true,
             attributionEnabled: Boolean = true,
         ): PulseConfiguration {
+            // Only an absent `endpoint` falls back to [DEFAULT_ENDPOINT]. An
+            // explicitly supplied empty or malformed value still throws: an
+            // explicitly empty one is almost always an environment variable
+            // that failed to load, and silently redirecting that traffic to
+            // Pubky's hosted instance would send a self-hoster's data to the
+            // wrong company. An empty string has no scheme, so the existing
+            // check in [parseEndpoint] already rejects it.
             val uri = parseEndpoint(endpoint)
             if (!apiKey.startsWith(CLIENT_KEY_PREFIX)) {
                 throw PulseConfigurationError.InvalidApiKey(
