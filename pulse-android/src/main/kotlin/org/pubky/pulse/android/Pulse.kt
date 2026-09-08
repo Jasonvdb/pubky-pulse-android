@@ -167,7 +167,7 @@ public object Pulse {
     @Throws(PulseConfigurationError::class)
     public fun configure(
         context: Context,
-        endpoint: String,
+        endpoint: String = PulseConfiguration.DEFAULT_ENDPOINT,
         apiKey: String,
         flushOnBackground: Boolean = true,
         compressionEnabled: Boolean = true,

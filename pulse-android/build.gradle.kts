@@ -80,7 +80,7 @@ mavenPublishing {
             "Kotlin SDK for Android — event logging, metrics, funnels, identity, " +
                 "screen tracking, feedback, and questionnaires. Core module (framework + coroutines only)."
         )
-        url.set("https://pulse.pubky.org")
+        url.set("https://pubkypulse.com")
         inceptionYear.set("2026")
 
         licenses {
@@ -95,7 +95,7 @@ mavenPublishing {
             developer {
                 id.set("pubky")
                 name.set("Pubky Pulse")
-                url.set("https://pulse.pubky.org")
+                url.set("https://pubkypulse.com")
             }
         }
 

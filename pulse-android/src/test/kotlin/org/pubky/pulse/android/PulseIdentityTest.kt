@@ -47,7 +47,7 @@ class PulseIdentityTest {
     private fun configure() {
         Pulse.configure(
             context = context,
-            endpoint = "https://ingest.pulse.pubky.org",
+            endpoint = "https://ingest.example.com",
             apiKey = "pulse_client_test",
         )
     }

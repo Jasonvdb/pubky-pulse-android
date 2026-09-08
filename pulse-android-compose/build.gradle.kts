@@ -85,7 +85,7 @@ dependencies {
 // classes (JDK 17+ bytecode → "PermittedSubclasses requires ASM9"), so javadoc
 // generation crashes and would fail every Maven Central publish. The core module
 // has no Compose deps and generates fine; only this module trips it. We don't ship
-// API docs inside the jar (they live at pulse.pubky.org/docs), so publish an EMPTY
+// API docs inside the jar (they live at pubkypulse.com/docs), so publish an EMPTY
 // javadoc jar: disabling the Dokka generation step leaves vanniktech's javaDocJar
 // to zip nothing into a valid, empty javadoc artifact that Central still accepts.
 tasks.matching { it.name == "javaDocReleaseGeneration" }.configureEach {
@@ -113,7 +113,7 @@ mavenPublishing {
             "Optional Jetpack Compose UI for the Pubky Pulse Android SDK — drop-in " +
                 "PulseFeedbackView, PulseQuestionnaireView, and the pulseScreen modifier. Builds on pulse-android."
         )
-        url.set("https://pulse.pubky.org")
+        url.set("https://pubkypulse.com")
         inceptionYear.set("2026")
 
         licenses {
@@ -128,7 +128,7 @@ mavenPublishing {
             developer {
                 id.set("pubky")
                 name.set("Pubky Pulse")
-                url.set("https://pulse.pubky.org")
+                url.set("https://pubkypulse.com")
             }
         }
 
